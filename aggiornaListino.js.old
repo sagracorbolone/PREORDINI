@@ -1,0 +1,117 @@
+// aggiornaListino.js (Node.js)
+
+const { Client } = require('pg');
+const fs = require('fs');
+
+// Configurazione del database PostgreSQL
+const dbConfig = {
+    user: 'sagra', // Il tuo utente PostgreSQL
+    host: 'localhost',
+    database: 'sagra', // Il nome del tuo database
+    password: 'plutarco', // La tua password PostgreSQL
+    port: 5432, // Porta di default di PostgreSQL
+};
+
+async function aggiornaListino() {
+    const client = new Client(dbConfig);
+
+    try {
+        await client.connect();
+        console.log('Connesso al database PostgreSQL.');
+
+        // Query per ottenere le tipologie (categorie)
+        const resCategorie = await client.query('SELECT id, descrizione FROM tipologie ORDER BY descrizione');
+        const categorie = resCategorie.rows;
+
+        const elencoPrincipale = [];
+        for (const cat of categorie) {
+            elencoPrincipale.push(cat.descrizione);
+        }
+
+        const elencoPietanze = {};
+
+        // Query per ottenere gli articoli per ogni tipologia
+        for (const cat of categorie) {
+            const resArticoli = await client.query('SELECT id, descrizione, prezzo FROM articoli WHERE id_tipologia = $1 ORDER BY descrizione', [cat.id]);
+            elencoPietanze[cat.descrizione] = resArticoli.rows;
+        }
+
+        // Generazione del contenuto del file data.js
+        let dataJsContent = `// data.js - Generato automaticamente da AGGIORNA LISTINO\n\n`;
+        dataJsContent += `var elencoPrincipale = ${JSON.stringify(elencoPrincipale, null, 2)};\n`;
+        dataJsContent += `var categorie = ${JSON.stringify(categorie, null, 2)};\n`;
+        dataJsContent += `var elencoPietanze = ${JSON.stringify(elencoPietanze, null, 2)};\n\n`;
+
+        // Aggiungi le funzioni Data() esistenti, assicurandoti che non dipendano da query AJAX
+        // Copia e incolla qui le funzioni Data(), getInstanceHashmap(), saveInstanceHashmap(), ecc.
+        // dal tuo data.js originale, ma assicurati di rimuovere le chiamate AJAX.
+        // Ad esempio:
+        dataJsContent += `function Data(){\n`;
+        dataJsContent += `   var riferimentoHashMap = "_hashmap";\n`;
+        dataJsContent += `   var riferimentoCoperti = "_coperti";\n`;
+        dataJsContent += `   \n`;
+        dataJsContent += `   this.getInstanceHashmap = function(){\n`;
+        dataJsContent += `      function recreateHashmap(value){\n`;
+        dataJsContent += `         var hashmap = new HashMap();\n`;
+        dataJsContent += `         for(var i = 0; i < value.length; i++){\n`;
+        dataJsContent += `            hashmap.put(value[i].key, value[i].val);\n`;
+        dataJsContent += `         }\n`;
+        dataJsContent += `         return hashmap;\n`;
+        dataJsContent += `      }\n`;
+        dataJsContent += `      \n`;
+        dataJsContent += `      var hashmap = $.cookie(riferimentoHashMap);\n`;
+        dataJsContent += `      if(typeof hashmap !== 'undefined' && hashmap !== null){  //esiste\n`;
+        dataJsContent += `         return recreateHashmap(JSON.parse(hashmap).value);\n`;
+        dataJsContent += `      }else{\n`;
+        dataJsContent += `         hashmap = new HashMap();\n`;
+        dataJsContent += `         this.saveInstanceHashmap(hashmap);\n`;
+        dataJsContent += `         return hashmap;\n`;
+        dataJsContent += `      }\n`;
+        dataJsContent += `   }\n`;
+        dataJsContent += `   \n`;
+        dataJsContent += `   this.saveInstanceHashmap = function(hashmap){\n`;
+        dataJsContent += `      $.cookie(\n`;
+        dataJsContent += `         riferimentoHashMap,\n`;
+        dataJsContent += `         JSON.stringify(hashmap)\n`;
+        dataJsContent += `      );\n`;
+        dataJsContent += `   }\n`;
+        dataJsContent += `   \n`;
+        dataJsContent += `   this.getInstanceCoperti = function(){\n`;
+        dataJsContent += `      var coperti = $.cookie(riferimentoCoperti);\n`;
+        dataJsContent += `      if(typeof coperti !== 'undefined' && coperti !== null){  //esiste\n`;
+        dataJsContent += `         return parseInt(coperti);\n`;
+        dataJsContent += `      }else{\n`;
+        dataJsContent += `         this.saveInstanceCoperti(0);\n`;
+        dataJsContent += `         return 0;\n`;
+        dataJsContent += `      }\n`;
+        dataJsContent += `   }\n`;
+        dataJsContent += `   \n`;
+        dataJsContent += `   this.saveInstanceCoperti = function(coperti){\n`;
+        dataJsContent += `      $.cookie(\n`;
+        dataJsContent += `         riferimentoCoperti,\n`;
+        dataJsContent += `         coperti\n`;
+        dataJsContent += `      );\n`;
+        dataJsContent += `   }\n`;
+        dataJsContent += `   \n`;
+        dataJsContent += `   this.deleteAllData = function(){\n`;
+        dataJsContent += `      $.removeCookie(riferimentoHashMap);\n`;
+        dataJsContent += `      $.removeCookie(riferimentoCoperti);\n`;
+        dataJsContent += `   }\n`;
+        dataJsContent += `}\n`;
+        dataJsContent += `\n`;
+        dataJsContent += `var dataManager = new Data();`;
+
+
+        // Scrittura del file data.js
+        fs.writeFileSync('C:/sagra/web/preordini/preordini_lib/util/data.js', dataJsContent);
+        console.log('File data.js generato e aggiornato con successo!');
+
+    } catch (err) {
+        console.error('Errore durante l\'aggiornamento del listino:', err);
+    } finally {
+        await client.end();
+        console.log('Connessione al database chiusa.');
+    }
+}
+
+aggiornaListino();

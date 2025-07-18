@@ -1,0 +1,1056 @@
+import psycopg2
+import json
+import os
+from datetime import datetime, date, time
+import tkinter as tk
+from tkinter import ttk, messagebox, colorchooser, filedialog
+import threading
+import time
+import tkinter.font as tkFont
+from PIL import Image, ImageTk 
+
+# =========================================================
+# FUNZIONI DI UTILITÀ PER LA CONFIGURAZIONE
+# =========================================================
+def load_config(config_file='config.json'):
+    """Carica la configurazione da un file JSON."""
+    try:
+        script_dir = os.path.dirname(__file__)
+        config_path = os.path.join(script_dir, config_file)
+        with open(config_path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"Errore: Il file di configurazione '{config_file}' non trovato. Crearne uno valido.")
+        # Restituisci una configurazione di fallback
+        return {
+            "db_config": {
+                'user': 'sagra', 'host': 'localhost', 'database': 'sagra', 'password': 'plutarco', 'port': 5432
+            },
+            "giacenza_config": {
+                "GIACENZA_SOGLIA_BASSA": 10, "GIACENZA_SOGLIA_CRITICA": 5, "GIACENZA_ESAURITO": 0,
+                "COLORE_SFONDO_GIACENZE": "#FFFFCC", "COLORE_TESTO_BASSO": "red", "COLORE_TESTO_NORMALE": "black",
+                "COLORE_TESTO_TIPOLOGIA": "navy", "COLORE_TESTO_ESAURITO_DESCRIZIONE": "gray",
+                "COLORE_TESTO_ESAURITO_GIACENZA": "darkgray", "COLORE_BORDO_ITEM_CRITICO": "red",
+                "COLORE_BORDO_ITEM_BASSO": "orange", "COLORE_BORDO_ITEM_ESAURITO": "gray", "COLORE_FLASHING_CRITICO": "yellow"
+            },
+            "font_config": {
+                "FONT_SIZE_ITEM": 28, "FONT_SIZE_TITLE_GIACENZE": 36, "FONT_SIZE_GIACENZA_VALUE": 32, "FONT_SIZE_MESSAGE": 72,
+                "FONT_FAMILY": "Helvetica"
+            },
+            "layout_config": {
+                "MAX_ROWS_PER_COLUMN": 10, "PADDING_X": 10, "PADDING_Y": 5, "ITEM_HEIGHT": 50, "COLUMN_SPACING": 30
+            },
+            "update_intervals": {
+                "INTERVALLO_AGGIORNAMENTO_DB": 5000, "INTERVALLO_FLASHING": 500, "ALTERNATE_INTERVAL_SECONDS": 10
+            },
+            "message_config": {
+                "DEFAULT_MESSAGE_FONT_COLOR": "white", "DEFAULT_MESSAGE_BG_COLOR": "#404040"
+            },
+            "image_config": {
+                "DEFAULT_IMAGE_PATH": "assets/sagra_logo_trasparente.png", "IMAGE_BACKGROUND_COLOR": "#2C3E50"
+            },
+            "exclusions": {
+                "TIPOLOGIE_DA_ESCLUDERE": ["MENU"]
+            }
+        }
+    except json.JSONDecodeError:
+        print(f"Errore: Il file '{config_file}' non è un JSON valido.")
+        # Restituisci una configurazione di fallback simile al FileNotFoundError
+        return {
+            "db_config": {
+                'user': 'sagra', 'host': 'localhost', 'database': 'sagra', 'password': 'plutarco', 'port': 5432
+            },
+            "giacenza_config": {
+                "GIACENZA_SOGLIA_BASSA": 10, "GIACENZA_SOGLIA_CRITICA": 5, "GIACENZA_ESAURITO": 0,
+                "COLORE_SFONDO_GIACENZE": "#FFFFCC", "COLORE_TESTO_BASSO": "red", "COLORE_TESTO_NORMALE": "black",
+                "COLORE_TESTO_TIPOLOGIA": "navy", "COLORE_TESTO_ESAURITO_DESCRIZIONE": "gray",
+                "COLORE_TESTO_ESAURITO_GIACENZA": "darkgray", "COLORE_BORDO_ITEM_CRITICO": "red",
+                "COLORE_BORDO_ITEM_BASSO": "orange", "COLORE_BORDO_ITEM_ESAURITO": "gray", "COLORE_FLASHING_CRITICO": "yellow"
+            },
+            "font_config": {
+                "FONT_SIZE_ITEM": 28, "FONT_SIZE_TITLE_GIACENZE": 36, "FONT_SIZE_GIACENZA_VALUE": 32, "FONT_SIZE_MESSAGE": 72,
+                "FONT_FAMILY": "Helvetica"
+            },
+            "layout_config": {
+                "MAX_ROWS_PER_COLUMN": 10, "PADDING_X": 10, "PADDING_Y": 5, "ITEM_HEIGHT": 50, "COLUMN_SPACING": 30
+            },
+            "update_intervals": {
+                "INTERVALLO_AGGIORNAMENTO_DB": 5000, "INTERVALLO_FLASHING": 500, "ALTERNATE_INTERVAL_SECONDS": 10
+            },
+            "message_config": {
+                "DEFAULT_MESSAGE_FONT_COLOR": "white", "DEFAULT_MESSAGE_BG_COLOR": "#404040"
+            },
+            "image_config": {
+                "DEFAULT_IMAGE_PATH": "assets/sagra_logo_trasparente.png", "IMAGE_BACKGROUND_COLOR": "#2C3E50"
+            },
+            "exclusions": {
+                "TIPOLOGIE_DA_ESCLUDERE": ["MENU"]
+            }
+        }
+
+config = load_config()
+
+# Assegnazione delle costanti dalla configurazione
+DB_CONFIG = config.get('db_config', {})
+GIACENZA_SOGLIA_BASSA = config['giacenza_config']['GIACENZA_SOGLIA_BASSA']
+GIACENZA_SOGLIA_CRITICA = config['giacenza_config']['GIACENZA_SOGLIA_CRITICA']
+GIACENZA_ESAURITO = config['giacenza_config']['GIACENZA_ESAURITO']
+COLORE_SFONDO_GIACENZE = config['giacenza_config']['COLORE_SFONDO_GIACENZE']
+COLORE_TESTO_BASSO = config['giacenza_config']['COLORE_TESTO_BASSO']
+COLORE_TESTO_NORMALE = config['giacenza_config']['COLORE_TESTO_NORMALE']
+COLORE_TESTO_TIPOLOGIA = config['giacenza_config']['COLORE_TESTO_TIPOLOGIA']
+COLORE_TESTO_ESAURITO_DESCRIZIONE = config['giacenza_config']['COLORE_TESTO_ESAURITO_DESCRIZIONE']
+COLORE_TESTO_ESAURITO_GIACENZA = config['giacenza_config']['COLORE_TESTO_ESAURITO_GIACENZA']
+COLORE_BORDO_ITEM_CRITICO = config['giacenza_config']['COLORE_BORDO_ITEM_CRITICO']
+COLORE_BORDO_ITEM_BASSO = config['giacenza_config']['COLORE_BORDO_ITEM_BASSO']
+COLORE_BORDO_ITEM_ESAURITO = config['giacenza_config']['COLORE_BORDO_ITEM_ESAURITO']
+COLORE_FLASHING_CRITICO = config['giacenza_config']['COLORE_FLASHING_CRITICO']
+
+FONT_SIZE_ITEM = config['font_config']['FONT_SIZE_ITEM']
+FONT_SIZE_TITLE_GIACENZE = config['font_config']['FONT_SIZE_TITLE_GIACENZE']
+FONT_SIZE_GIACENZA_VALUE = config['font_config']['FONT_SIZE_GIACENZA_VALUE']
+FONT_SIZE_MESSAGE = config['font_config']['FONT_SIZE_MESSAGE']
+FONT_FAMILY = config['font_config']['FONT_FAMILY']
+
+# Nuova costante per la dimensione del font delle tipologie (ridotta di 1/3)
+FONT_SIZE_TIPOLOGIA = int(FONT_SIZE_ITEM * 2 / 3) 
+if FONT_SIZE_TIPOLOGIA < 1: # Assicurati che non sia mai zero o negativo
+    FONT_SIZE_TIPOLOGIA = 1
+
+
+MAX_ROWS_PER_COLUMN = config['layout_config']['MAX_ROWS_PER_COLUMN']
+PADDING_X = config['layout_config']['PADDING_X']
+PADDING_Y = config['layout_config']['PADDING_Y']
+ITEM_HEIGHT = config['layout_config']['ITEM_HEIGHT']
+COLUMN_SPACING = config['layout_config']['COLUMN_SPACING']
+
+INTERVALLO_AGGIORNAMENTO_DB = config['update_intervals']['INTERVALLO_AGGIORNAMENTO_DB']
+INTERVALLO_FLASHING = config['update_intervals']['INTERVALLO_FLASHING']
+ALTERNATE_INTERVAL_SECONDS = config['update_intervals']['ALTERNATE_INTERVAL_SECONDS']
+
+DEFAULT_MESSAGE_FONT_COLOR = config['message_config']['DEFAULT_MESSAGE_FONT_COLOR']
+DEFAULT_MESSAGE_BG_COLOR = config['message_config']['DEFAULT_MESSAGE_BG_COLOR']
+
+DEFAULT_IMAGE_PATH = config['image_config']['DEFAULT_IMAGE_PATH']
+IMAGE_BACKGROUND_COLOR = config['image_config']['IMAGE_BACKGROUND_COLOR']
+
+TIPOLOGIE_DA_ESCLUDERE = config['exclusions']['TIPOLOGIE_DA_ESCLUDERE']
+
+# Nuove costanti per la transizione
+TRANSITION_DURATION_MS = 500 # Durata totale della transizione in millisecondi
+TRANSITION_STEPS = 10       # Numero di passi per la transizione
+
+# =========================================================
+# GESTIONE DATABASE
+# =========================================================
+def get_db_connection():
+    """Stabilisce e restituisce una connessione al database PostgreSQL."""
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        return conn
+    except psycopg2.Error as e:
+        print(f"Errore di connessione al database: {e}")
+        return None
+
+class DatabaseManager:
+    """Gestisce le operazioni di accesso al database."""
+    def __init__(self):
+        pass
+
+    def fetch_all_tipologie(self):
+        """Recupera tutte le tipologie di articoli escludendo quelle specificate."""
+        conn = get_db_connection()
+        if not conn:
+            return []
+        
+        try:
+            with conn.cursor() as cur:
+                exclude_placeholders = ', '.join(['%s'] * len(TIPOLOGIE_DA_ESCLUDERE))
+                query_sql = f"SELECT id, UPPER(descrizione) FROM tipologie WHERE descrizione NOT IN ({exclude_placeholders}) ORDER BY descrizione"
+                cur.execute(query_sql, TIPOLOGIE_DA_ESCLUDERE)
+                return [{"id": row[0], "descrizione": row[1]} for row in cur.fetchall()]
+        except psycopg2.Error as e:
+            print(f"Errore durante il recupero delle tipologie: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
+
+    def fetch_articoli_sotto_soglia(self):
+        """
+        Recupera gli articoli con giacenza bassa, critica o esaurita.
+        Calcola la giacenza attuale sottraendo le vendite totali dalla scorta iniziale,
+        considerando solo le vendite a partire dall'inizio della giornata corrente,
+        usando le colonne 'data' e 'ora' della tabella 'ordini' e unendo con 'righe.descrizionebreve'.
+        """
+        conn = get_db_connection()
+        if not conn:
+            print("DEBUG: Impossibile ottenere la connessione al DB in fetch_articoli_sotto_soglia.")
+            return []
+
+        try:
+            with conn.cursor() as cur:
+                exclude_placeholders = ', '.join(['%s'] * len(TIPOLOGIE_DA_ESCLUDERE))
+                exclude_clause = f"AND tipologie.descrizione NOT IN ({exclude_placeholders})" if TIPOLOGIE_DA_ESCLUDERE else ""
+
+                # --- PUNTO DI RIFERIMENTO TEMPORALE ---
+                # Mezzanotte del giorno corrente (per filtrare gli ordini da oggi)
+                today_start_datetime = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+                # print(f"DEBUG: Data/Ora di inizio per le vendite (today_start_datetime): {today_start_datetime}") # Rimosso per pulizia output
+                
+                query_sql = f"""
+                    SELECT
+                        articoli.descrizione,
+                        GREATEST(0, (giacenze.scorta_iniziale - COALESCE(SUM(vendite_oggi.quantita), 0))) AS rimanenti,
+                        giacenze.id AS giacenza_id,
+                        UPPER(tipologie.descrizione) AS tipologia_desc,
+                        giacenze.scorta_iniziale AS debug_scorta_iniziale,
+                        COALESCE(SUM(vendite_oggi.quantita), 0) AS debug_vendite_oggi
+                    FROM articoli
+                    JOIN giacenze ON giacenze.id = articoli.id_giacenza
+                    JOIN tipologie ON tipologie.id = articoli.id_tipologia
+                    LEFT JOIN (
+                        SELECT
+                            righe.descrizionebreve,  -- Usiamo descrizionebreve per l'unione
+                            righe.quantita
+                        FROM righe
+                        JOIN ordini ON ordini.id = righe.id_ordine
+                        -- Filtra le vendite solo dal punto di riferimento temporale (oggi, mezzanotte)
+                        -- Combina data e ora per creare un TIMESTAMP per il confronto.
+                        WHERE (ordini.data + ordini.ora) >= %s 
+                    ) AS vendite_oggi
+                    ON vendite_oggi.descrizionebreve = articoli.descrizionebreve -- Unione su descrizionebreve
+                    WHERE giacenze.scorta_iniziale IS NOT NULL
+                    {exclude_clause}
+                    GROUP BY articoli.descrizione, articoli.descrizionebreve, giacenze.scorta_iniziale, giacenze.id, tipologie.descrizione
+                    HAVING GREATEST(0, (giacenze.scorta_iniziale - COALESCE(SUM(vendite_oggi.quantita), 0))) <= {GIACENZA_SOGLIA_BASSA}
+                    ORDER BY tipologie.descrizione, articoli.descrizione;
+                """
+                
+                params = [today_start_datetime] + TIPOLOGIE_DA_ESCLUDERE 
+
+                # print(f"DEBUG: Esecuzione query con parametri: {params}") # Rimosso per pulizia output
+                cur.execute(query_sql, params)
+                
+                result = []
+                for row in cur.fetchall():
+                    # print(f"DEBUG: Articolo recuperato: Descrizione={row[0]}, Rimanenti={row[1]}, ScortaIniziale={row[4]}, VenditeOggi={row[5]}") # Rimosso per pulizia output
+                    item = { # Modificato per includere i campi di debug
+                        "descrizione": row[0],
+                        "giacenza": row[1],
+                        "id_giacenza": row[2],
+                        "tipologia_desc": row[3],
+                        "debug_scorta_iniziale": row[4], # DEBUG
+                        "debug_vendite_oggi": row[5] # DEBUG
+                    }
+                    result.append(item)
+
+                return result
+        except psycopg2.Error as e:
+            print(f"ERRORE DB in fetch_articoli_sotto_soglia: {e}") # DEBUG PRINT
+            return []
+        finally:
+            if conn:
+                conn.close()
+
+
+# =========================================================
+# INTERFACCIA GRAFICA (TKINTER)
+# =========================================================
+
+class GiacenzeFrame(tk.Frame):
+    """Frame per la visualizzazione delle giacenze degli articoli."""
+    def __init__(self, master, db_manager):
+        super().__init__(master, bg=COLORE_SFONDO_GIACENZE)
+        self.db_manager = db_manager
+        self.giacenze_labels = {}  # Dizionario per tenere traccia delle etichette (descrizione, giacenza)
+        self.giacenze_data = []    # Dati attuali delle giacenze
+        self.flashing_states = {}  # Stato del flashing per ogni giacenza critica
+        self.after_id = None       # ID per il callback after (per il flashing)
+        self.update_thread = None  # Thread per l'aggiornamento del DB
+        self.running = True        # Flag per controllare l'esecuzione del thread
+
+        # Nuove variabili per la logica di calcolo delle rimanenze
+        self.base_calcolo_rimanenze_per_item = {} # {giacenza_id: (ScortaIniziale_al_calcolo_base + VenditeOggi_al_calcolo_base)}
+        self.last_fetched_scorta_iniziale = {} # {giacenza_id: ScortaIniziale_ultima_lettura_dal_DB}
+
+        self.grid_columnconfigure(0, weight=1) # Colonna per il titolo
+        self.grid_columnconfigure(1, weight=1) # Colonna 1 per gli items
+        self.grid_columnconfigure(2, weight=1) # Colonna 2 per gli items (se necessario)
+
+        self.title_label = tk.Label(self, text="ARTICOLI IN ESAURIMENTO",
+                                    font=(FONT_FAMILY, FONT_SIZE_TITLE_GIACENZE, "bold"),
+                                    bg=COLORE_SFONDO_GIACENZE, fg=COLORE_TESTO_TIPOLOGIA)
+        self.title_label.grid(row=0, column=0, columnspan=3, pady=(20, 10))
+
+        self.item_frame_left = tk.Frame(self, bg=COLORE_SFONDO_GIACENZE)
+        self.item_frame_left.grid(row=1, column=0, padx=PADDING_X, pady=PADDING_Y, sticky="nsew")
+
+        self.item_frame_right = tk.Frame(self, bg=COLORE_SFONDO_GIACENZE)
+        self.item_frame_right.grid(row=1, column=1, padx=PADDING_X, pady=PADDING_Y, sticky="nsew")
+        self.item_frame_right.grid_remove() # Nascondi inizialmente
+
+        self.no_data_label = tk.Label(self, text="Nessun articolo con giacenza disponibile.",
+                                      font=(FONT_FAMILY, FONT_SIZE_ITEM, "italic"),
+                                      bg=COLORE_SFONDO_GIACENZE, fg="gray")
+        self.no_data_label.grid(row=1, column=0, columnspan=3, sticky="nsew", padx=PADDING_X, pady=PADDING_Y)
+        self.no_data_label.grid_remove() # Nascondi inizialmente
+
+        self.start_update_thread()
+        self.flash_giacenze() # Avvia il ciclo di flashing
+
+    def start_update_thread(self):
+        """Avvia il thread per l'aggiornamento periodico dei dati dal DB."""
+        self.running = True
+        self.update_thread = threading.Thread(target=self._update_data_loop, daemon=True)
+        self.update_thread.start()
+
+    def stop_threads(self):
+        """Ferma il thread di aggiornamento e il ciclo di flashing."""
+        self.running = False
+        if self.after_id:
+            try:
+                self.master.after_cancel(self.after_id)
+            except Exception as e:
+                print(f"Errore durante l'annullamento after_id: {e}")
+
+    def _update_data_loop(self):
+        """Loop del thread per recuperare dati dal DB e aggiornare la GUI."""
+        while self.running:
+            try:
+                # print("DEBUG: _update_data_loop - Inizio ciclo di aggiornamento DB.") # Rimosso per pulizia output
+                new_giacenze_data = self.db_manager.fetch_articoli_sotto_soglia()
+                # print(f"DEBUG: _update_data_loop - Dati recuperati: {len(new_giacenze_data)} articoli.") # Rimosso per pulizia output
+                self.master.after(0, self.update_gui, new_giacenze_data)
+                time.sleep(INTERVALLO_AGGIORNAMENTO_DB / 1000.0)
+            except Exception as e:
+                print(f"ERRORE nel thread di aggiornamento database: {e}") # DEBUG PRINT
+                time.sleep(5) # Attendi prima di riprovare in caso di errore
+
+    def update_gui(self, new_giacenze_data):
+        """Aggiorna l'interfaccia grafica con i nuovi dati delle giacenze."""
+        # print(f"DEBUG: update_gui - Aggiornamento GUI con {len(new_giacenze_data)} articoli.") # Rimosso per pulizia output
+        
+        # --- Applica la nuova logica di calcolo delle rimanenze ---
+        processed_giacenze_data = []
+        for item in new_giacenze_data:
+            giacenza_id = item['id_giacenza']
+            current_scorta_iniziale = item['debug_scorta_iniziale']
+            current_vendite_oggi = item['debug_vendite_oggi']
+
+            # Punto 1 & 4: Inizializza base_calcolo_rimanenze o aggiornala se ScortaIniziale è stata modificata
+            if giacenza_id not in self.base_calcolo_rimanenze_per_item or \
+               self.last_fetched_scorta_iniziale.get(giacenza_id) != current_scorta_iniziale:
+                
+                # Calcola la base: ScortaIniziale + VenditeOggi (dal DB al momento del calcolo base)
+                self.base_calcolo_rimanenze_per_item[giacenza_id] = current_scorta_iniziale + current_vendite_oggi
+                self.last_fetched_scorta_iniziale[giacenza_id] = current_scorta_iniziale
+                # print(f"DEBUG: {item['descrizione']}: Base calcolo rimanenze aggiornata a {self.base_calcolo_rimanenze_per_item[giacenza_id]}") # Rimosso per pulizia output
+            
+            # Punto 3: Calcola Rimanenti = base_calcolo_rimanenze - VenditeOggi (attuali dal DB)
+            calculated_rimanenti = self.base_calcolo_rimanenze_per_item.get(giacenza_id, 0) - current_vendite_oggi
+            item['giacenza'] = max(0, calculated_rimanenti) # Assicurati che non scenda sotto zero
+            # print(f"DEBUG: {item['descrizione']}: Rimanenti calcolati = {item['giacenza']} (Base: {self.base_calcolo_rimanenze_per_item.get(giacenza_id, 0)} - VenditeOggi_correnti: {current_vendite_oggi})") # Rimosso per pulizia output
+            
+            processed_giacenze_data.append(item)
+        
+        # --- Applica la regola di visualizzazione: filtrare gli articoli con giacenza <= GIACENZA_SOGLIA_BASSA ---
+        # Questo filtro avviene dopo il ricalcolo client-side delle rimanenze
+        self.giacenze_data = [item for item in processed_giacenze_data if item['giacenza'] <= GIACENZA_SOGLIA_BASSA]
+        # print(f"DEBUG: update_gui - Articoli dopo filtro client-side: {len(self.giacenze_data)} articoli.") # Rimosso per pulizia output
+
+        # --- Aggiunto blocco per la normalizzazione dei nomi delle tipologie (se necessario) ---
+        # Questo serve per gestire incongruenze nel DB come "SECONDI PIATTI PRIMI" vs "SECONDI PIATTI"
+        for item in self.giacenze_data:
+            if item['tipologia_desc'] == 'SECONDI PIATTI PRIMI':
+                item['tipologia_desc'] = 'SECONDI PIATTI'
+            # Puoi aggiungere altre normalizzazioni qui se necessario, ad esempio:
+            # if item['tipologia_desc'] == 'PIZZETTE VARIE':
+            #     item['tipologia_desc'] = 'PIZZETTE'
+        # --- FINE BLOCCO NORMALIZZAZIONE ---
+
+        # --- Fine della nuova logica e del filtro ---
+
+
+        # Nascondi tutti gli elementi attuali
+        for giacenza_id, labels in list(self.giacenze_labels.items()):
+            for label in labels.values():
+                label.destroy()
+            del self.giacenze_labels[giacenza_id]
+        
+        # Svuota gli stati di flashing
+        self.flashing_states = {}
+
+        # Rimuovi il no_data_label e nascondi i frame delle colonne
+        self.no_data_label.grid_remove()
+        self.item_frame_left.grid_remove()
+        self.item_frame_right.grid_remove()
+
+        if not self.giacenze_data:
+            self.no_data_label.grid() # Mostra il messaggio di nessun dato
+            return
+
+        self.item_frame_left.grid(row=1, column=0, padx=PADDING_X, pady=PADDING_Y, sticky="nsew")
+        
+        # Raggruppa per tipologia
+        grouped_giacenze = {}
+        for item in self.giacenze_data:
+            tipologia = item['tipologia_desc']
+            if tipologia not in grouped_giacenze:
+                grouped_giacenze[tipologia] = []
+            grouped_giacenze[tipologia].append(item)
+        
+        tipologie_ordinate = sorted(grouped_giacenze.keys())
+        
+        # Controlla se è necessario usare due colonne (approssimazione)
+        total_items_to_display = sum(len(items) for items in grouped_giacenze.values()) + len(tipologie_ordinate)
+        use_two_columns = total_items_to_display > MAX_ROWS_PER_COLUMN
+
+        # Configura l'espansione delle colonne per i sub-frames
+        self.item_frame_left.grid_columnconfigure(0, weight=3) # Descrizione
+        self.item_frame_left.grid_columnconfigure(1, weight=1) # Giacenza
+        self.item_frame_right.grid_columnconfigure(0, weight=3)
+        self.item_frame_right.grid_columnconfigure(1, weight=1)
+
+        target_frame = self.item_frame_left
+        row_in_current_frame = 0
+
+        for tipologia in tipologie_ordinate:
+            # Calcola quante righe questa tipologia consumerà
+            # Una riga per il titolo della tipologia + una riga per ogni articolo
+            tipologia_rows_count = 1 + len(grouped_giacenze[tipologia]) 
+
+            # Logica per passare alla seconda colonna se la prima è piena e le due colonne sono attive
+            if use_two_columns and (row_in_current_frame + tipologia_rows_count > MAX_ROWS_PER_COLUMN) and (target_frame == self.item_frame_left):
+                target_frame = self.item_frame_right
+                row_in_current_frame = 0 # Reset riga per la nuova colonna
+                self.item_frame_right.grid() # Mostra la colonna di destra
+
+            # Aggiungi il titolo della tipologia
+            tipologia_label = tk.Label(target_frame, text=tipologia,
+                                       font=(FONT_FAMILY, FONT_SIZE_TIPOLOGIA, "bold"),
+                                       bg=COLORE_SFONDO_GIACENZE, fg=COLORE_TESTO_TIPOLOGIA)
+            tipologia_label.grid(row=row_in_current_frame, column=0, columnspan=2, sticky="w", pady=(5, 2))
+            row_in_current_frame += 1
+
+            for item in grouped_giacenze[tipologia]:
+                giacenza_id = item['id_giacenza']
+                descrizione = item['descrizione']
+                giacenza_value = item['giacenza'] # Questo ora è il valore calcolato dalla nuova logica
+
+                desc_label = tk.Label(target_frame, text=descrizione,
+                                       font=(FONT_FAMILY, FONT_SIZE_ITEM),
+                                       bg=COLORE_SFONDO_GIACENZE, anchor="w", justify="left")
+                desc_label.grid(row=row_in_current_frame, column=0, sticky="ew", padx=(10, 0))
+
+                # Modifica qui per visualizzare "***ESAURITO***"
+                display_giacenza_text = str(giacenza_value)
+                if giacenza_value <= GIACENZA_ESAURITO:
+                    display_giacenza_text = "***ESAURITO***"
+
+                giacenza_label = tk.Label(target_frame, text=display_giacenza_text,
+                                           font=(FONT_FAMILY, FONT_SIZE_GIACENZA_VALUE, "bold"),
+                                           bg=COLORE_SFONDO_GIACENZE, anchor="e", justify="right")
+                giacenza_label.grid(row=row_in_current_frame, column=1, sticky="ew", padx=(0, 10))
+
+                # Assegna i colori in base alla giacenza
+                if giacenza_value <= GIACENZA_ESAURITO:
+                    desc_label.config(fg=COLORE_TESTO_ESAURITO_DESCRIZIONE)
+                    giacenza_label.config(fg=COLORE_TESTO_ESAURITO_GIACENZA)
+                elif giacenza_value <= GIACENZA_SOGLIA_CRITICA:
+                    desc_label.config(fg=COLORE_TESTO_BASSO) # Inizialmente rosso
+                    giacenza_label.config(fg=COLORE_TESTO_BASSO)
+                    # Aggiungi per il flashing solo se non esaurito
+                    if giacenza_value > GIACENZA_ESAURITO:
+                        self.flashing_states[giacenza_id] = {'desc': desc_label, 'value': giacenza_label, 'state': False}
+                elif giacenza_value <= GIACENZA_SOGLIA_BASSA:
+                    desc_label.config(fg=COLORE_TESTO_BASSO)
+                    giacenza_label.config(fg=COLORE_TESTO_BASSO)
+                else:
+                    desc_label.config(fg=COLORE_TESTO_NORMALE)
+                    giacenza_label.config(fg=COLORE_TESTO_NORMALE)
+
+                self.giacenze_labels[giacenza_id] = {'desc': desc_label, 'value': giacenza_label}
+                row_in_current_frame += 1
+
+
+    def flash_giacenze(self):
+        """Implementa l'effetto lampeggiante per le giacenze critiche."""
+        if not self.running: # Termina il flashing se l'app si sta chiudendo
+            return
+
+        items_to_remove_from_flashing = []
+        for giacenza_id, state_info in list(self.flashing_states.items()):
+            desc_label = state_info['desc']
+            value_label = state_info['value']
+            current_state = state_info['state']
+
+            # Cerca l'elemento nei dati attuali
+            current_item = next((item for item in self.giacenze_data if item['id_giacenza'] == giacenza_id), None)
+
+            if current_item and current_item['giacenza'] <= GIACENZA_SOGLIA_CRITICA and current_item['giacenza'] > GIACENZA_ESAURITO:
+                # L'elemento è ancora critico e non esaurito, continua il flashing
+                if desc_label.winfo_exists() and value_label.winfo_exists():
+                    if current_state:
+                        desc_label.config(fg=COLORE_TESTO_BASSO) # Torna al colore originale (rosso)
+                        value_label.config(fg=COLORE_TESTO_BASSO)
+                    else:
+                        desc_label.config(fg=COLORE_FLASHING_CRITICO) # Colore di flashing (giallo)
+                        value_label.config(fg=COLORE_FLASHING_CRITICO)
+                self.flashing_states[giacenza_id]['state'] = not current_state
+            else:
+                # L'elemento non è più critico o è esaurito, smetti di flashare e ripristina colore
+                if desc_label.winfo_exists(): # Controlla se la label esiste ancora
+                    if current_item and current_item['giacenza'] <= GIACENZA_ESAURITO:
+                        desc_label.config(fg=COLORE_TESTO_ESAURITO_DESCRIZIONE)
+                        value_label.config(fg=COLORE_TESTO_ESAURITO_GIACENZA)
+                    else:
+                        # Se è uscito dalla critica ma è ancora sotto soglia bassa
+                        if current_item and current_item['giacenza'] <= GIACENZA_SOGLIA_BASSA:
+                            desc_label.config(fg=COLORE_TESTO_BASSO)
+                            value_label.config(fg=COLORE_TESTO_BASSO)
+                        else: # O tornato normale
+                            desc_label.config(fg=COLORE_TESTO_NORMALE) 
+                            value_label.config(fg=COLORE_TESTO_NORMALE)
+                items_to_remove_from_flashing.append(giacenza_id)
+        
+        for giacenza_id in items_to_remove_from_flashing:
+            if giacenza_id in self.flashing_states:
+                del self.flashing_states[giacenza_id]
+
+        self.after_id = self.master.after(INTERVALLO_FLASHING, self.flash_giacenze)
+
+
+class MessageFrame(tk.Frame):
+    """Frame per la visualizzazione di un messaggio personalizzato."""
+    def __init__(self, master, message_var, font_size_var, font_color_var, bg_color_var, justify_var, font_family_var):
+        super().__init__(master)
+        self.message_var = message_var
+        self.font_size_var = font_size_var
+        self.font_color_var = font_color_var
+        self.bg_color_var = bg_color_var
+        self.justify_var = justify_var
+        self.font_family_var = font_family_var 
+
+        self.canvas = tk.Canvas(self, bg=self.bg_color_var.get(), highlightthickness=0)
+        self.canvas.pack(expand=True, fill="both")
+        self.text_id = None 
+
+        self.message_var.trace_add("write", self._update_message)
+        self.font_size_var.trace_add("write", self._update_message)
+        self.font_color_var.trace_add("write", self._update_message)
+        self.bg_color_var.trace_add("write", self._update_message)
+        self.justify_var.trace_add("write", self._update_message)
+        self.font_family_var.trace_add("write", self._update_message)
+        
+        self.bind("<Configure>", self._on_resize) 
+
+        self._update_message() 
+
+    def _update_message(self, *args):
+        """Aggiorna il testo, il font e i colori del messaggio sul canvas."""
+        message_text = self.message_var.get()
+        font_size = self.font_size_var.get()
+        font_color = self.font_color_var.get()
+        bg_color = self.bg_color_var.get()
+        justify = self.justify_var.get()
+        font_family = self.font_family_var.get() 
+
+        self.canvas.config(bg=bg_color)
+
+        if self.text_id:
+            self.canvas.delete(self.text_id)
+
+        canvas_width = self.canvas.winfo_width()
+        canvas_height = self.canvas.winfo_height()
+
+        if canvas_width == 0 or canvas_height == 0:
+            self.master.after(100, self._update_message)
+            return
+
+        y_pos = canvas_height / 2
+        
+        if justify == 'left':
+            anchor = 'w' 
+            x_pos = PADDING_X 
+        elif justify == 'right':
+            anchor = 'e' 
+            x_pos = canvas_width - PADDING_X 
+        else: # 'center'
+            anchor = 'center'
+            x_pos = canvas_width / 2
+
+        wraplength = max(1, canvas_width - (2 * PADDING_X)) 
+
+        self.text_id = self.canvas.create_text(x_pos, y_pos, 
+                                               text=message_text,
+                                               font=(font_family, font_size), 
+                                               fill=font_color,
+                                               anchor=anchor,
+                                               width=wraplength,
+                                               justify=justify)
+
+    def _on_resize(self, event=None):
+        """Aggiorna la visualizzazione del messaggio quando il frame viene ridimensionato."""
+        self._update_message()
+
+
+class ImageDisplayFrame(tk.Frame):
+    """Frame per la visualizzazione di un'immagine di sfondo."""
+    def __init__(self, master, image_path_var, bg_color=IMAGE_BACKGROUND_COLOR):
+        super().__init__(master, bg=bg_color)
+        self.image_path_var = image_path_var
+        self.bg_color = bg_color
+        self.original_image = None
+        self.photo_image = None
+        self.master_instance = master 
+
+        self.label = tk.Label(self, bg=bg_color)
+        self.label.pack(expand=True, fill="both")
+
+        self.image_path_var.trace_add("write", self._load_and_display_image)
+        self.bind("<Configure>", self._load_and_display_image) 
+        self.bind("<Map>", self._load_and_display_image) 
+        
+        self._load_and_display_image()
+
+    def _load_and_display_image(self, *args):
+        """Carica, ridimensiona e visualizza l'immagine."""
+        current_path = self.image_path_var.get()
+        self.config(bg=self.bg_color)
+        self.label.config(bg=self.bg_color)
+
+        frame_width = self.winfo_width()
+        frame_height = self.winfo_height()
+
+        if frame_width == 0 or frame_height == 0:
+            self.master_instance.after(100, self._load_and_display_image)
+            return 
+
+        if not current_path or not os.path.exists(current_path):
+            self.label.config(image="") 
+            self.original_image = None
+            self.photo_image = None
+            return
+
+        try:
+            if not self.original_image or getattr(self.original_image, 'current_path', None) != current_path:
+                self.original_image = Image.open(current_path)
+                self.original_image.current_path = current_path 
+            
+            img_width, img_height = self.original_image.size
+            
+            ratio_w = frame_width / img_width
+            ratio_h = frame_height / img_height
+            ratio = min(ratio_w, ratio_h)
+
+            new_width = int(img_width * ratio)
+            new_height = int(img_height * ratio)
+
+            if new_width == 0 or new_height == 0:
+                self.label.config(image="")
+                self.photo_image = None
+                return
+
+            resized_image = self.original_image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+            self.photo_image = ImageTk.PhotoImage(resized_image)
+            self.label.config(image=self.photo_image)
+            self.label.image = self.photo_image 
+
+        except Exception as e:
+            print(f"Errore nel caricamento/visualizzazione immagine '{current_path}': {e}")
+            self.label.config(image="")
+            self.original_image = None
+            self.photo_image = None
+
+    def set_image_path(self, path):
+        """Imposta il percorso dell'immagine e forza il ricaricamento."""
+        if self.image_path_var.get() != path:
+            self.image_path_var.set(path)
+            self._load_and_display_image()
+        elif not self.photo_image: 
+            self._load_and_display_image()
+
+
+class ControlPanelApp(tk.Toplevel):
+    """Pannello di controllo separato per la configurazione del messaggio e dell'immagine."""
+    def __init__(self, master, main_app_instance, message_var, font_size_var, font_color_var, bg_color_var, justify_var, image_path_var, font_family_var):
+        super().__init__(master)
+        self.title("Pannello di Controllo Sagra")
+        self.geometry("600x750+0+0")
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        self.main_app_instance = main_app_instance 
+        self.message_var = message_var
+        self.font_size_var = font_size_var
+        self.font_color_var = font_color_var
+        self.bg_color_var = bg_color_var
+        self.justify_var = justify_var
+        self.image_path_var = image_path_var
+        self.font_family_var = font_family_var 
+
+        self.create_widgets()
+        self.text_widget_sync_from_var()
+
+    def create_widgets(self):
+        """Crea tutti i widget del pannello di controllo."""
+        main_frame = ttk.Frame(self, padding="10")
+        main_frame.pack(fill="both", expand=True)
+
+        # --- Sezione Messaggio ---
+        message_frame = ttk.LabelFrame(main_frame, text="Gestione Messaggio", padding="10")
+        message_frame.pack(fill="x", pady=10)
+
+        ttk.Label(message_frame, text="Messaggio:").grid(row=0, column=0, sticky="nw", pady=2)
+        
+        self.message_text_widget = tk.Text(message_frame, height=10, width=50, wrap="word")
+        self.message_text_widget.grid(row=0, column=1, columnspan=2, sticky="ew", padx=5, pady=2)
+        
+        scrollbar = ttk.Scrollbar(message_frame, command=self.message_text_widget.yview)
+        scrollbar.grid(row=0, column=3, sticky="ns")
+        self.message_text_widget['yscrollcommand'] = scrollbar.set
+
+        self.message_text_widget.bind("<<Modified>>", self.text_widget_sync_to_var)
+        self.message_text_widget.bind("<KeyRelease>", lambda e: self.message_text_widget.edit_modified(False))
+
+
+        ttk.Label(message_frame, text="Dimensione Font:").grid(row=1, column=0, sticky="w", pady=2)
+        font_size_options = [str(i) for i in range(10, 150, 2)]
+        self.font_size_combobox = ttk.Combobox(message_frame, textvariable=self.font_size_var, values=font_size_options, width=10, state="readonly")
+        self.font_size_combobox.grid(row=1, column=1, sticky="w", padx=5, pady=2)
+        if str(FONT_SIZE_MESSAGE) in font_size_options: 
+            self.font_size_combobox.set(FONT_SIZE_MESSAGE) 
+        else:
+            self.font_size_combobox.set(font_size_options[0])
+
+        ttk.Label(message_frame, text="Famiglia Font:").grid(row=2, column=0, sticky="w", pady=2)
+        available_fonts = sorted(list(tkFont.families()))
+        self.font_family_combobox = ttk.Combobox(message_frame, textvariable=self.font_family_var, 
+                                                values=available_fonts, width=20, state="readonly")
+        self.font_family_combobox.grid(row=2, column=1, sticky="w", padx=5, pady=2)
+        if FONT_FAMILY in available_fonts:
+            self.font_family_combobox.set(FONT_FAMILY)
+        else:
+            self.font_family_combobox.set("Helvetica")
+
+
+        ttk.Label(message_frame, text="Colore Testo:").grid(row=3, column=0, sticky="w", pady=2)
+        self.font_color_button = ttk.Button(message_frame, text="Scegli Colore Testo", command=self.choose_font_color)
+        self.font_color_button.grid(row=3, column=1, sticky="ew", padx=5, pady=2)
+        self.font_color_display = tk.Frame(message_frame, width=20, height=20, bd=1, relief="solid", bg=self.font_color_var.get())
+        self.font_color_display.grid(row=3, column=2, padx=5, pady=2)
+        self.font_color_var.trace_add("write", lambda *args: self.font_color_display.config(bg=self.font_color_var.get()))
+
+
+        ttk.Label(message_frame, text="Colore Sfondo:").grid(row=4, column=0, sticky="w", pady=2)
+        self.bg_color_button = ttk.Button(message_frame, text="Scegli Colore Sfondo", command=self.choose_bg_color)
+        self.bg_color_button.grid(row=4, column=1, sticky="ew", padx=5, pady=2)
+        self.bg_color_display = tk.Frame(message_frame, width=20, height=20, bd=1, relief="solid", bg=self.bg_color_var.get())
+        self.bg_color_display.grid(row=4, column=2, padx=5, pady=2)
+        self.bg_color_var.trace_add("write", lambda *args: self.bg_color_display.config(bg=self.bg_color_var.get()))
+
+        ttk.Label(message_frame, text="Giustificazione:").grid(row=5, column=0, sticky="w", pady=2)
+        justify_options = ["left", "center", "right"]
+        self.justify_combobox = ttk.Combobox(message_frame, textvariable=self.justify_var, values=justify_options, width=10, state="readonly")
+        self.justify_combobox.grid(row=5, column=1, sticky="w", padx=5, pady=2)
+        self.justify_combobox.set("center") 
+
+        clear_message_button = ttk.Button(message_frame, text="Cancella Messaggio", command=self.clear_message)
+        clear_message_button.grid(row=6, column=0, columnspan=3, pady=10)
+
+        # --- Sezione Immagine di Sfondo ---
+        image_frame = ttk.LabelFrame(main_frame, text="Gestione Immagine di Sfondo", padding="10")
+        image_frame.pack(fill="x", pady=10)
+
+        ttk.Label(image_frame, text="Percorso Immagine:").grid(row=0, column=0, sticky="w", pady=2)
+        self.image_path_entry = ttk.Entry(image_frame, textvariable=self.image_path_var, width=40)
+        self.image_path_entry.grid(row=0, column=1, sticky="ew", padx=5, pady=2)
+        self.browse_image_button = ttk.Button(image_frame, text="Sfoglia...", command=self.browse_image)
+        self.browse_image_button.grid(row=0, column=2, sticky="ew", padx=5, pady=2)
+
+        clear_image_button = ttk.Button(image_frame, text="Cancella Immagine", command=self.clear_image)
+        clear_image_button.grid(row=1, column=0, columnspan=3, pady=10)
+
+        # --- Pulsante Esci ---
+        exit_button = ttk.Button(main_frame, text="Esci da TUTTE le Applicazioni", 
+                                 command=lambda: self.master.event_generate("<<ExitApplication>>"))
+        exit_button.pack(pady=20)
+
+
+    def choose_font_color(self):
+        """Apre il selettore colori per il testo del messaggio."""
+        color_code = colorchooser.askcolor(title="Scegli Colore Testo Messaggio", 
+                                            initialcolor=self.font_color_var.get(),
+                                            parent=self) 
+        if color_code[1]: 
+            self.font_color_var.set(color_code[1])
+
+    def choose_bg_color(self):
+        """Apre il selettore colori per lo sfondo del messaggio."""
+        color_code = colorchooser.askcolor(title="Scegli Colore Sfondo Messaggio", 
+                                            initialcolor=self.bg_color_var.get(),
+                                            parent=self) 
+        if color_code[1]:
+            self.bg_color_var.set(color_code[1])
+
+    def text_widget_sync_to_var(self, *args):
+        """Sincronizza il contenuto del Text widget alla StringVar."""
+        if self.message_text_widget.edit_modified():
+            text_content = self.message_text_widget.get("1.0", tk.END).strip()
+            self.message_var.set(text_content)
+            self.message_text_widget.edit_modified(False) 
+
+    def text_widget_sync_from_var(self, *args):
+        """Sincronizza il contenuto della StringVar al Text widget."""
+        self.message_text_widget.delete("1.0", tk.END)
+        self.message_text_widget.insert("1.0", self.message_var.get())
+        self.message_text_widget.edit_modified(False) 
+
+
+    def clear_message(self):
+        """Cancella il messaggio impostato."""
+        self.message_var.set("")
+        self.message_text_widget.delete("1.0", tk.END) 
+
+    def browse_image(self):
+        """Apre una finestra di dialogo per selezionare un file immagine."""
+        file_path = filedialog.askopenfilename(
+            parent=self, 
+            title="Seleziona un'immagine",
+            filetypes=[("File Immagine", "*.png *.jpg *.jpeg *.gif *.bmp *.ico"), ("Tutti i file", "*.*")]
+        )
+        if file_path:
+            if hasattr(self.main_app_instance, 'image_display_frame'):
+                self.main_app_instance.image_display_frame.set_image_path(file_path)
+
+
+    def clear_image(self):
+        """Cancella il percorso dell'immagine di sfondo."""
+        if hasattr(self.main_app_instance, 'image_display_frame'):
+            self.main_app_instance.image_display_frame.set_image_path("")
+
+
+    def on_closing(self):
+        """Gestisce il tentativo di chiusura del pannello di controllo."""
+        messagebox.showinfo("Avviso", "Per uscire dall'applicazione, usa il pulsante 'Esci da TUTTE le Applicazioni' nel pannello di controllo della finestra principale.")
+
+
+class MainApp(tk.Frame):
+    """Classe principale dell'applicazione, gestisce le finestre e l'alternanza."""
+    def __init__(self, master):
+        super().__init__(master)
+        self.master = master
+        self.master.title("Schermo Giacenze Sagra")
+        
+        self.master.geometry("1200x800")
+        
+        self.master.winfo_toplevel()._name = "mainapp" 
+
+        self.master.bind("<Escape>", lambda e: self.on_closing())
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        self.message_text_var = tk.StringVar(value="")
+        self.message_font_size_var = tk.IntVar(value=FONT_SIZE_MESSAGE)
+        self.message_font_color_var = tk.StringVar(value=DEFAULT_MESSAGE_FONT_COLOR)
+        self.message_bg_color_var = tk.StringVar(value=DEFAULT_MESSAGE_BG_COLOR)
+        self.message_justify_var = tk.StringVar(value="center")
+        self.message_font_family_var = tk.StringVar(value=FONT_FAMILY) 
+
+        script_dir = os.path.dirname(__file__)
+        default_img_full_path = os.path.join(script_dir, DEFAULT_IMAGE_PATH)
+        self.image_path_var = tk.StringVar(value=default_img_full_path if os.path.exists(default_img_full_path) else "") 
+        
+
+        self.db_manager = DatabaseManager()
+
+        # Inizializziamo tutti i frame, ma li impacchettiamo/disimpacchettiamo dinamicamente
+        self.giacenze_frame = GiacenzeFrame(self.master, self.db_manager)
+        self.message_frame = MessageFrame(self.master, self.message_text_var, self.message_font_size_var,
+                                          self.message_font_color_var, self.message_bg_color_var,
+                                          self.message_justify_var, self.message_font_family_var)
+        self.image_display_frame = ImageDisplayFrame(self.master, self.image_path_var)
+
+        # Metti tutti i frame in un dizionario per accedervi facilmente con un nome
+        self.frames = {
+            "giacenze": self.giacenze_frame,
+            "message": self.message_frame,
+            "image": self.image_display_frame
+        }
+        
+        self.current_frame_name = None # Nome del frame attualmente visualizzato
+        self.active_display_sequence = [] # Sequence di nomi dei frame da mostrare
+
+        self.control_panel = ControlPanelApp(self.master, self, self.message_text_var, self.message_font_size_var,
+                                             self.message_font_color_var, self.message_bg_color_var,
+                                             self.message_justify_var, self.image_path_var, self.message_font_family_var)
+
+        self.master.bind("<<ExitApplication>>", lambda event: self.on_closing())
+
+        self.running = True
+        self.alternating_thread = threading.Thread(target=self.alternating_loop, daemon=True)
+        self.alternating_thread.start()
+
+        # Inizializza la GUI con i dati all'avvio
+        initial_giacenze_data = self.db_manager.fetch_articoli_sotto_soglia()
+        self.giacenze_frame.update_gui(initial_giacenze_data)
+        
+        # Avvia la prima visualizzazione dopo un breve ritardo per l'inizializzazione
+        self.master.after(100, self.alternating_loop_step)
+
+
+    def alternating_loop(self):
+        """Loop in un thread separato per alternare le schermate di visualizzazione."""
+        while self.running:
+            # L'alternanza è ora gestita dal meccanismo after del thread principale
+            # quindi il sleep qui serve solo a dettare il ritmo generale.
+            time.sleep(ALTERNATE_INTERVAL_SECONDS)
+            self.master.after(0, self.alternating_loop_step)
+
+
+    def alternating_loop_step(self):
+        """La logica per decidere e mostrare il frame appropriato nella sequenza con transizione."""
+        
+        new_active_sequence_names = []
+        
+        giacenze_available = len(self.giacenze_frame.giacenze_data) > 0
+        message_active = bool(self.message_text_var.get().strip()) 
+        
+        current_image_path = self.image_path_var.get()
+        image_file_exists = current_image_path and os.path.exists(current_image_path)
+        
+        if giacenze_available:
+            new_active_sequence_names.append("giacenze")
+        
+        if message_active:
+            new_active_sequence_names.append("message")
+            
+        if image_file_exists:
+            new_active_sequence_names.append("image")
+        
+        # Se non c'è NESSUN contenuto da mostrare (né giacenze, né messaggio, né immagini valide),
+        # allora mostra il frame delle giacenze (che mostrerà "Nessun articolo...")
+        if not new_active_sequence_names:
+            new_active_sequence_names.append("giacenze") # Priorità al frame giacenze come fallback
+            # Se non ci sono giacenze né messaggi, e l'immagine utente non è valida, prova l'immagine di default
+            if not image_file_exists:
+                script_dir = os.path.dirname(__file__)
+                default_img_full_path = os.path.join(script_dir, DEFAULT_IMAGE_PATH)
+                if os.path.exists(default_img_full_path):
+                    if self.image_path_var.get() != default_img_full_path:
+                        self.image_display_frame.set_image_path(default_img_full_path)
+                    if "image" not in new_active_sequence_names:
+                        new_active_sequence_names.append("image")
+
+        self.active_display_sequence = new_active_sequence_names
+        
+        if not self.active_display_sequence:
+            return
+
+        # Determina il prossimo frame
+        try:
+            current_idx = self.active_display_sequence.index(self.current_frame_name)
+            next_idx = (current_idx + 1) % len(self.active_display_sequence)
+        except ValueError: # Se current_frame_name non è nella sequenza attiva
+            next_idx = 0 # Inizia dalla prima
+
+        next_frame_name = self.active_display_sequence[next_idx]
+        target_frame = self.frames[next_frame_name]
+
+        # Avvia la transizione
+        self.transition_frames(self.current_frame_name, next_frame_name, target_frame)
+        self.current_frame_name = next_frame_name
+
+
+    def transition_frames(self, old_frame_name, new_frame_name, new_frame_instance):
+        """
+        Gestisce la transizione visiva tra il vecchio e il nuovo frame.
+        Simula una dissolvenza incrociata usando pack/pack_forget e lift/lower.
+        """
+        old_frame_instance = None
+        if old_frame_name and old_frame_name in self.frames:
+            old_frame_instance = self.frames[old_frame_name]
+
+        # Se non c'è un frame precedente o è la prima visualizzazione, mostra semplicemente il nuovo
+        if not old_frame_instance or old_frame_instance == new_frame_instance:
+            for frame_name, frame in self.frames.items():
+                if frame_name == new_frame_name:
+                    frame.pack(fill="both", expand=True)
+                else:
+                    frame.pack_forget()
+            self.master.update_idletasks()
+            return
+
+        # Porta il nuovo frame in primo piano, ma inizialmente è "nascosto" dietro il vecchio
+        # Dobbiamo assicurarci che siano entrambi impacchettati per manipolare l'ordine
+        new_frame_instance.pack(fill="both", expand=True)
+        old_frame_instance.pack(fill="both", expand=True)
+        
+        # Inizia portando il vecchio frame sopra il nuovo
+        old_frame_instance.lift() 
+        self.master.update_idletasks() # Forza l'aggiornamento
+
+        # Ora simula la "dissolvenza" del vecchio frame gradualmente abbassandolo
+        # e facendo apparire il nuovo frame sotto.
+        # Per una vera dissolvenza, dovremmo usare un canvas con immagini o Tkinter con supporto alpha
+        # ma Tkinter standard non ha un'opacità diretta per i widget Frame.
+        # Questa è una "flash fade" o "blink" molto breve.
+
+        # Passaggio 1: Breve pausa con il vecchio frame ancora visibile
+        step_delay = TRANSITION_DURATION_MS // TRANSITION_STEPS
+        
+        def fade_step(current_step):
+            if not self.running: return
+
+            if current_step < TRANSITION_STEPS:
+                # Per una vera dissolvenza, potremmo cambiare i colori gradualmente
+                # Ma per semplicità e per la natura di Tkinter, facciamo un "pop" o un "blink"
+                if current_step == (TRANSITION_STEPS // 2): # A metà transizione, abbassiamo il vecchio frame
+                     old_frame_instance.lower() # Il nuovo frame diventa visibile
+                
+                self.master.after(step_delay, fade_step, current_step + 1)
+            else:
+                # Alla fine della transizione, assicurati che solo il nuovo frame sia visibile
+                old_frame_instance.pack_forget()
+                new_frame_instance.pack(fill="both", expand=True) # Assicurati che il nuovo sia impacchettato
+                new_frame_instance.lift() # Assicurati che sia in primo piano
+                self.master.update_idletasks()
+
+        fade_step(0) # Avvia la transizione
+
+    def on_closing(self):
+        """Gestisce la chiusura di tutte le finestre e la terminazione del programma."""
+        top = tk.Toplevel(self.master)
+        top.withdraw() 
+        top.attributes('-topmost', True) 
+
+        screen_width = top.winfo_screenwidth()
+        screen_height = top.winfo_screenheight()
+        msg_width = 300
+        msg_height = 100
+        x_pos = (screen_width // 2) - (msg_width // 2)
+        y_pos = (screen_height // 2) - (msg_height // 2)
+
+        top.geometry(f"+{x_pos}+{y_pos}") 
+
+        try:
+            if messagebox.askokcancel("Esci", "Sei sicuro di voler uscire da TUTTE le applicazioni?", parent=top):
+                self.running = False 
+                if hasattr(self, 'giacenze_frame'):
+                    self.giacenze_frame.stop_threads() 
+                self.master.destroy() 
+            else:
+                top.destroy() 
+        except Exception as e:
+            print(f"Errore durante la chiusura con messagebox: {e}")
+            top.destroy()
+            if messagebox.askokcancel("Esci (Errore)", "Errore durante la visualizzazione del messaggio. Uscire comunque?"):
+                self.running = False
+                if hasattr(self, 'giacenze_frame'):
+                    self.giacenze_frame.stop_threads()
+                self.master.destroy()
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = MainApp(root)
+    root.mainloop()
