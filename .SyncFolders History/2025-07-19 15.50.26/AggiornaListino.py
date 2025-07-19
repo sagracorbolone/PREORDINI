@@ -36,19 +36,8 @@ def aggiorna_listino():
         
         # Query per ottenere gli articoli per ogni tipologia
         for cat in categorie:
-            # MODIFICA QUI: Combinazione di REPLACE e TRIM per gestire i punti finali e i punti prima della virgola
-            cur.execute("""
-                SELECT 
-                    id, 
-                    descrizione, 
-                    TRIM(TRAILING '.' FROM REPLACE(TRIM(TRAILING '0' FROM prezzo::text), '.,', ',')) as prezzo 
-                FROM 
-                    articoli 
-                WHERE 
-                    id_tipologia = %s 
-                ORDER BY 
-                    descrizione
-            """, (cat['id'],))
+            # MODIFICA QUI: Aggiunto REPLACE per rimuovere il punto prima della virgola nel prezzo
+            cur.execute("SELECT id, descrizione, REPLACE(TRIM(TRAILING '0' FROM prezzo::text), '.,', ',') as prezzo FROM articoli WHERE id_tipologia = %s ORDER BY descrizione", (cat['id'],))
             articoli_rows = cur.fetchall()
             current_category_pietanze = []
             for row in articoli_rows:

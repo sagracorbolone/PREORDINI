@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-07-19T15:50:18.637394)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-07-19T15:36:30.430450)
 
 var elencoPrincipale = [
   "BEVANDE",
@@ -33,12 +33,12 @@ var elencoPietanze = {
     {
       "id": 29,
       "descrizione": "ACQUA FRIZZ. 0,50L",
-      "prezzo": "1"
+      "prezzo": "1."
     },
     {
       "id": 28,
       "descrizione": "ACQUA NAT. 0,50L",
-      "prezzo": "1"
+      "prezzo": "1."
     },
     {
       "id": 37,
@@ -53,27 +53,27 @@ var elencoPietanze = {
     {
       "id": 31,
       "descrizione": "BICCH. VINO BIANCO",
-      "prezzo": "1"
+      "prezzo": "1."
     },
     {
       "id": 30,
       "descrizione": "BICCH. VINO ROSSO",
-      "prezzo": "1"
+      "prezzo": "1."
     },
     {
       "id": 40,
       "descrizione": "BOTT.BIANCO SELEZ.",
-      "prezzo": "8"
+      "prezzo": "8."
     },
     {
       "id": 41,
       "descrizione": "BOTT.PROSECCO DOC",
-      "prezzo": "10"
+      "prezzo": "10."
     },
     {
       "id": 39,
       "descrizione": "BOTT.ROSSO SELEZ",
-      "prezzo": "8"
+      "prezzo": "8."
     },
     {
       "id": 33,
@@ -83,7 +83,7 @@ var elencoPietanze = {
     {
       "id": 35,
       "descrizione": "CARAFFA BIANCO 1L",
-      "prezzo": "6"
+      "prezzo": "6."
     },
     {
       "id": 32,
@@ -93,7 +93,7 @@ var elencoPietanze = {
     {
       "id": 34,
       "descrizione": "CARAFFA ROSSO 1L",
-      "prezzo": "6"
+      "prezzo": "6."
     },
     {
       "id": 38,
@@ -110,7 +110,7 @@ var elencoPietanze = {
     {
       "id": 25,
       "descrizione": "FAGIOLI",
-      "prezzo": "3"
+      "prezzo": "3."
     },
     {
       "id": 24,
@@ -120,11 +120,16 @@ var elencoPietanze = {
     {
       "id": 23,
       "descrizione": "PATATINE",
-      "prezzo": "3"
+      "prezzo": "3."
     },
     {
       "id": 26,
       "descrizione": "SUPPL. PANE",
+      "prezzo": "0.5"
+    },
+    {
+      "id": 27,
+      "descrizione": "SUPPL.POLENTA",
       "prezzo": "0.5"
     }
   ],
@@ -143,14 +148,14 @@ var elencoPietanze = {
     {
       "id": 2,
       "descrizione": "PASTA CINGHIALE",
-      "prezzo": "8"
+      "prezzo": "8."
     }
   ],
   "SECONDI PIATTI": [
     {
       "id": 15,
       "descrizione": "BACCALA'",
-      "prezzo": "12"
+      "prezzo": "12."
     },
     {
       "id": 16,
@@ -160,22 +165,12 @@ var elencoPietanze = {
     {
       "id": 13,
       "descrizione": "CAPRIOLO E FUNGHI",
-      "prezzo": "13"
+      "prezzo": "13."
     },
     {
       "id": 6,
       "descrizione": "COSTA",
       "prezzo": "8.5"
-    },
-    {
-      "id": 9,
-      "descrizione": "COSTATA",
-      "prezzo": "18"
-    },
-    {
-      "id": 10,
-      "descrizione": "COSTATA BEN COTTA",
-      "prezzo": "18"
     },
     {
       "id": 19,
@@ -185,7 +180,7 @@ var elencoPietanze = {
     {
       "id": 20,
       "descrizione": "FORMAGGIO COTTO",
-      "prezzo": "7"
+      "prezzo": "7."
     },
     {
       "id": 18,
@@ -195,7 +190,7 @@ var elencoPietanze = {
     {
       "id": 22,
       "descrizione": "GALLETTO ALLA BRACE",
-      "prezzo": "10"
+      "prezzo": "10."
     },
     {
       "id": 8,
@@ -215,17 +210,17 @@ var elencoPietanze = {
     {
       "id": 14,
       "descrizione": "STINCO",
-      "prezzo": "12"
+      "prezzo": "12."
     },
     {
       "id": 21,
       "descrizione": "STRATAGLIATA",
-      "prezzo": "14"
+      "prezzo": "14."
     },
     {
       "id": 12,
       "descrizione": "TRIPPE",
-      "prezzo": "8"
+      "prezzo": "8."
     }
   ]
 };
