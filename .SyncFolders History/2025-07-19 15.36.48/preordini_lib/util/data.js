@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-07-19T15:36:30.430450)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-07-18T19:32:55.943049)
 
 var elencoPrincipale = [
   "BEVANDE",
@@ -171,6 +171,16 @@ var elencoPietanze = {
       "id": 6,
       "descrizione": "COSTA",
       "prezzo": "8.5"
+    },
+    {
+      "id": 9,
+      "descrizione": "COSTATA",
+      "prezzo": "18."
+    },
+    {
+      "id": 10,
+      "descrizione": "COSTATA BEN COTTA",
+      "prezzo": "18."
     },
     {
       "id": 19,
