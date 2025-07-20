@@ -6,17 +6,18 @@ import os
 from datetime import datetime
 import tkinter as tk
 from tkinter import messagebox
+import sys # Importa sys per gestire l'uscita in caso di errore critico
 
 # =========================================================
 # CONFIGURAZIONE DATABASE POSTGRESQL
 # Modifica questi valori con i tuoi dati reali del database
 # =========================================================
 db_config = {
-    'user': 'sagra',     # Il tuo utente PostgreSQL (es. 'postgres')
-    'host': 'localhost',         # L'host del tuo database (solitamente 'localhost' per DB locali)
+    'user': 'sagra',      # Il tuo utente PostgreSQL (es. 'postgres')
+    'host': 'localhost',             # L'host del tuo database (solitamente 'localhost' per DB locali)
     'database': 'sagra', # Il nome del tuo database (es. 'sagra_db')
     'password': 'plutarco', # La tua password PostgreSQL
-    'port': 5432,                # Porta di default di PostgreSQL (di solito 5432)
+    'port': 5432,                    # Porta di default di PostgreSQL (di solito 5432)
 }
 
 def aggiorna_listino():
@@ -56,13 +57,14 @@ def aggiorna_listino():
                 all_pietanze.append(pietanza)
                 current_category_pietanze.append({'id': row[0], 'descrizione': row[1], 'prezzo': row[2]})
             elenco_pietanze_db[cat['descrizione']] = current_category_pietanze
-
+            
         # --- Finestra di selezione GUI ---
         root = tk.Tk()
-        root.title("Seleziona Pietanze da includere nel Listino")
-        
-        # Frame per i checkbox
-        checkbox_frame = tk.Frame(root)
+        root.withdraw() # Nasconde la finestra principale vuota
+        gui_window = tk.Toplevel(root)
+        gui_window.title("Seleziona Pietanze da includere nel Listino")
+
+        checkbox_frame = tk.Frame(gui_window)
         checkbox_frame.pack(padx=10, pady=10)
 
         canvas = tk.Canvas(checkbox_frame)
@@ -89,14 +91,14 @@ def aggiorna_listino():
             cb.pack(anchor='w')
             selected_pietanze_vars.append({'pietanza': pietanza, 'var': var})
 
-        # Funzione per gestire il tasto CONTINUA
         def continua_action():
-            root.destroy() # Chiude la finestra GUI
+            gui_window.destroy() # Chiude la finestra GUI
+            root.quit() # Ferma il mainloop di Tkinter
 
-        continua_button = tk.Button(root, text="CONTINUA", command=continua_action)
+        continua_button = tk.Button(gui_window, text="CONTINUA", command=continua_action)
         continua_button.pack(pady=10)
 
-        root.mainloop()
+        root.mainloop() # Avvia il mainloop di Tkinter per la GUI
 
         # Filtra le pietanze selezionate
         filtered_elenco_pietanze = {}
@@ -116,125 +118,125 @@ def aggiorna_listino():
         # Prepara elencoPrincipale (solo categorie con almeno un articolo selezionato)
         elenco_principale = [cat['descrizione'] for cat in categorie if len(filtered_elenco_pietanze[cat['descrizione']]) > 0]
 
-
         # ====================================================================
         # Generazione del contenuto del file data.js con le selezioni
         # ====================================================================
-        data_js_content = f"// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: {datetime.now().isoformat()})\n\n"
+        
+        # Recupera la data e ora corrente per il timestamp nel commento
+        now = datetime.now()
+        timestamp_str = now.isoformat()
 
-        # Dati del listino (popolati dalle query al DB)
-        data_js_content += f"var elencoPrincipale = {json.dumps(elenco_principale, indent=2)};\n"
-        data_js_content += f"var categorie = {json.dumps(categorie, indent=2)};\n" # Le categorie rimangono tutte
-        data_js_content += f"var elencoPietanze = {json.dumps(filtered_elenco_pietanze, indent=2)};\n\n"
+        # Prepara la data per la variabile JavaScript (solo YYYY-MM-DD)
+        data_js_var_date = now.strftime("%Y-%m-%d")
 
-        # Inserimento della definizione della funzione Data() (rimane invariata)
-        data_js_content += """
+        data_js_content = f"""// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: {timestamp_str})
+var dataGenerazioneListino = "{data_js_var_date}";
+
+var elencoPrincipale = {json.dumps(elenco_principale, indent=2)};
+var categorie = {json.dumps(categorie, indent=2)}; // Le categorie rimangono tutte
+var elencoPietanze = {json.dumps(filtered_elenco_pietanze, indent=2)};
+
 // ====================================================================
 // Le funzioni sottostanti gestiscono i dati dell'ordine lato client
 // e includono console.log per il debugging e le opzioni per i cookie.
 // ====================================================================
 
-function Data(){
-   var riferimentoHashMap = "_hashmap";
-   var riferimentoCoperti = "_coperti";
+function Data(){{
+    var riferimentoHashMap = "_hashmap";
+    var riferimentoCoperti = "_coperti";
 
-   this.getInstanceHashmap = function(){
-      function recreateHashmap(value){
-         console.log("DEBUG (data.js): recreateHashmap - input value:", value); // DEBUG
-         var hashmap = new HashMap();
-         if (value && Array.isArray(value)) { // Assicurati che 'value' sia un array valido
-             for(var i = 0; i < value.length; i++){
-                // Assicurati che gli oggetti all'interno dell'array abbiano le proprietà key e val
-                if (value[i] && typeof value[i].key !== 'undefined' && typeof value[i].val !== 'undefined') {
-                    console.log("DEBUG (data.js): recreateHashmap - Putting:", value[i].key, value[i].val); // DEBUG
-                    hashmap.put(value[i].key, value[i].val);
-                } else {
-                    console.warn("WARNING (data.js): recreateHashmap - Invalid item in value array, skipping:", value[i]); // DEBUG
-                }
-             }
-         } else {
-             console.warn("WARNING (data.js): recreateHashmap - 'value' is not a valid array or is empty:", value); // DEBUG
-         }
-         console.log("DEBUG (data.js): recreateHashmap - Recreated hashmap size:", hashmap.size(), "content:", hashmap); // DEBUG
-         return hashmap;
-      }
+    this.saveInstanceHashMap = function(hashmap){{
+        console.log("DEBUG (data.js): saveInstanceHashmap - Saving hashmap to cookie. Hashmap object:", hashmap, "Value array to stringify:", hashmap.value); // DEBUG
+        $.cookie(
+            riferimentoHashMap,
+            JSON.stringify(hashmap.value), // Salva direttamente l'array 'value' della HashMap
+            {{ expires: 7, path: '/', json: true }}
+        );
+        console.log("DEBUG (data.js): saveInstanceHashmap - Cookie saved. Current cookie value (via $.cookie):", $.cookie(riferimentoHashMap)); // DEBUG
+        console.log("DEBUG (data.js): saveInstanceHashmap - Raw document.cookie after save:", document.cookie); // NUOVO DEBUG: Controlla il document.cookie raw
+    }};
 
-      var hashmapCookieValue = $.cookie(riferimentoHashMap);
-      console.log("DEBUG (data.js): getInstanceHashmap - Raw hashmap cookie value:", hashmapCookieValue); // DEBUG
+    this.getInstanceHashMap = function(){{
+        function recreateHashmap(value){{
+            console.log("DEBUG (data.js): recreateHashmap - input value:", value); // DEBUG
+            var hashmap = new HashMap();
+            if (value && Array.isArray(value)) {{ // Assicurati che 'value' sia un array valido
+                for(var i = 0; i < value.length; i++){{
+                    if (value[i] && typeof value[i].key !== 'undefined' && typeof value[i].val !== 'undefined') {{
+                        console.log("DEBUG (data.js): recreateHashmap - Putting:", value[i].key, value[i].val); // DEBUG
+                        hashmap.put(value[i].key, value[i].val);
+                    }} else {{
+                        console.warn("WARNING (data.js): recreateHashmap - Invalid item in value array, skipping:", value[i]); // DEBUG
+                    }}
+                }}
+            }} else {{
+                console.warn("WARNING (data.js): recreateHashmap - 'value' is not a valid array or is empty:", value); // DEBUG
+            }}
+            console.log("DEBUG (data.js): recreateHashmap - Recreated hashmap size:", hashmap.size(), "content:", hashmap); // DEBUG
+            return hashmap;
+        }}
 
-      if(typeof hashmapCookieValue !== 'undefined' && hashmapCookieValue !== null && hashmapCookieValue !== ""){  //esiste e non è vuoto
-         try {
-             var parsedCookie = JSON.parse(hashmapCookieValue);
-             console.log("DEBUG (data.js): getInstanceHashmap - Parsed cookie value:", parsedCookie); // DEBUG
-             // Assicurati che parsedCookie.value esista e sia un array
-             if (parsedCookie && parsedCookie.value && Array.isArray(parsedCookie.value)) {
-                 return recreateHashmap(parsedCookie.value);
-             } else {
-                 console.error("ERROR (data.js): getInstanceHashmap - Parsed cookie does not contain a valid 'value' array. Resetting data.", parsedCookie); // DEBUG
-                 // Resetta in caso di struttura del cookie non valida
-                 this.deleteAllData();
-                 var newHashmap = new HashMap();
-                 this.saveInstanceHashmap(newHashmap);
-                 return newHashmap;
-             }
-         } catch (e) {
-             console.error("ERROR (data.js): getInstanceHashmap - Error parsing hashmap cookie. Resetting data.", e, "Raw value:", hashmapCookieValue); // DEBUG
-             // Se c'è un errore di parsing (es. cookie corrotto), resettiamo.
-             this.deleteAllData();
-             var newHashmap = new HashMap();
-             this.saveInstanceHashmap(newHashmap);
-             return newHashmap;
-         }
-      } else {
-         console.log("DEBUG (data.js): getInstanceHashmap - Hashmap cookie not found or empty, creating new hashmap."); // DEBUG
-         var hashmap = new HashMap();
-         this.saveInstanceHashmap(hashmap);
-         return hashmap;
-      }
-   }
+        var hashmapCookieValue = $.cookie(riferimentoHashMap);
+        console.log("DEBUG (data.js): getInstanceHashmap - Raw hashmap cookie value:", hashmapCookieValue); // DEBUG
 
-   this.saveInstanceHashmap = function(hashmap){
-      console.log("DEBUG (data.js): saveInstanceHashmap - Saving hashmap to cookie. Hashmap object:", hashmap, "Value array to stringify:", hashmap.value); // DEBUG
-      $.cookie(
-         riferimentoHashMap,
-         JSON.stringify(hashmap),
-         { expires: 7, path: '/', json: true } // AGGIUNTO json: true
-      );
-      console.log("DEBUG (data.js): saveInstanceHashmap - Cookie saved. Current cookie value (via $.cookie):", $.cookie(riferimentoHashMap)); // DEBUG
-      console.log("DEBUG (data.js): saveInstanceHashmap - Raw document.cookie after save:", document.cookie); // NUOVO DEBUG: Controlla il document.cookie raw
-   }
+        if(typeof hashmapCookieValue !== 'undefined' && hashmapCookieValue !== null && hashmapCookieValue !== ""){{ //esiste e non è vuoto
+            try {{
+                var parsedCookie = JSON.parse(hashmapCookieValue);
+                console.log("DEBUG (data.js): getInstanceHashmap - Parsed cookie value:", parsedCookie); // DEBUG
+                if (parsedCookie && typeof parsedCookie === 'object' && parsedCookie.hasOwnProperty('value') && Array.isArray(parsedCookie.value)) {{
+                    return recreateHashmap(parsedCookie.value);
+                }} else {{
+                    console.error("ERROR (data.js): getInstanceHashmap - Parsed cookie does not contain a valid 'value' array. Resetting data.", parsedCookie); // DEBUG
+                    this.deleteAllData();
+                    var newHashmap = new HashMap();
+                    this.saveInstanceHashmap(newHashmap);
+                    return newHashmap;
+                }}
+            }} catch (e) {{
+                console.error("ERROR (data.js): getInstanceHashmap - Error parsing hashmap cookie. Resetting data.", e, "Raw value:", hashmapCookieValue); // DEBUG
+                this.deleteAllData();
+                var newHashmap = new HashMap();
+                this.saveInstanceHashmap(newHashmap);
+                return newHashmap;
+            }}
+        }} else {{
+            console.log("DEBUG (data.js): getInstanceHashmap - Hashmap cookie not found or empty, creating new hashmap."); // DEBUG
+            var hashmap = new HashMap();
+            this.saveInstanceHashmap(hashmap);
+            return hashmap;
+        }}
+    }};
 
-   this.getInstanceCoperti = function(){
-      var coperti = $.cookie(riferimentoCoperti);
-      console.log("DEBUG (data.js): getInstanceCoperti - Raw coperti cookie value:", coperti); // DEBUG
-      if(typeof coperti !== 'undefined' && coperti !== null && coperti !== ""){  //esiste e non è vuoto
-         return parseInt(coperti);
-      }else{
-         console.log("DEBUG (data.js): getInstanceCoperti - Coperti cookie not found or empty, saving 0."); // DEBUG
-         this.saveInstanceCoperti(0);
-         return 0;
-      }
-   }
+    this.saveInstanceCoperti = function(coperti){{
+        console.log("DEBUG (data.js): saveInstanceCoperti - Saving coperti to cookie:", coperti); // DEBUG
+        $.cookie(
+            riferimentoCoperti,
+            coperti,
+            {{ expires: 7, path: '/', json: true }}
+        );
+        console.log("DEBUG (data.js): saveInstanceCoperti - Coperti cookie saved. Current cookie value (via $.cookie):", $.cookie(riferimentoCoperti)); // DEBUG
+        console.log("DEBUG (data.js): saveInstanceCoperti - Raw document.cookie after save:", document.cookie); // NUOVO DEBUG: Controlla il document.cookie raw
+    }};
 
-   this.saveInstanceCoperti = function(coperti){
-      console.log("DEBUG (data.js): saveInstanceCoperti - Saving coperti to cookie:", coperti); // DEBUG
-      $.cookie(
-         riferimentoCoperti,
-         coperti,
-         { expires: 7, path: '/', json: true } // AGGIUNTO json: true
-      );
-      console.log("DEBUG (data.js): saveInstanceCoperti - Coperti cookie saved. Current cookie value (via $.cookie):", $.cookie(riferimentoCoperti)); // DEBUG
-      console.log("DEBUG (data.js): saveInstanceCoperti - Raw document.cookie after save:", document.cookie); // NUOVO DEBUG: Controlla il document.cookie raw
-   }
+    this.getInstanceCoperti = function(){{
+        var coperti = $.cookie(riferimentoCoperti);
+        console.log("DEBUG (data.js): getInstanceCoperti - Raw coperti cookie value:", coperti); // DEBUG
+        if(typeof coperti !== 'undefined' && coperti !== null && coperti !== ""){{ //esiste e non è vuoto
+            return parseInt(coperti);
+        }}else{{
+            console.log("DEBUG (data.js): getInstanceCoperti - Coperti cookie not found or empty, saving 0."); // DEBUG
+            this.saveInstanceCoperti(0);
+            return 0;
+        }}
+    }};
 
-   this.deleteAllData = function(){
-      console.log("DEBUG (data.js): deleteAllData - Deleting all order data (hashmap and coperti cookies)."); // DEBUG
-      // Specificare il path per la rimozione, deve corrispondere al path con cui è stato salvato
-      $.removeCookie(riferimentoHashMap, { path: '/' });
-      $.removeCookie(riferimentoCoperti, { path: '/' });
-      console.log("DEBUG (data.js): deleteAllData - Cookies removed."); // DEBUG
-   }
-}
+    this.deleteAllData = function(){{
+        console.log("DEBUG (data.js): deleteAllData - Deleting all order data (hashmap and coperti cookies)."); // DEBUG
+        $.removeCookie(riferimentoHashMap, {{ path: '/' }});
+        $.removeCookie(riferimentoCoperti, {{ path: '/' }});
+        console.log("DEBUG (data.js): deleteAllData - Cookies removed."); // DEBUG
+    }};
+}}
 
 var dataManager = new Data();
 """
@@ -248,13 +250,18 @@ var dataManager = new Data();
         with open(output_path, 'w', encoding='utf-8') as f:
             f.write(data_js_content)
         print(f'File data.js generato e aggiornato con successo in: {output_path}')
+        messagebox.showinfo("Aggiornamento Listino", f"Listino aggiornato con successo!\nFile: {output_path}")
 
     except psycopg2.Error as e:
-        print(f'ERRORE CRITICO: Errore durante l\'aggiornamento del listino: {e}')
-        messagebox.showerror("Errore Database", f"Si è verificato un errore durante la connessione al database o l'esecuzione delle query:\n{e}")
+        error_message = f"Si è verificato un errore durante la connessione al database o l'esecuzione delle query:\n{e}"
+        print(f'ERRORE CRITICO: {error_message}')
+        messagebox.showerror("Errore Database", error_message)
+        sys.exit(1) # Esce dal programma con un codice di errore
     except Exception as e:
-        print(f'ERRORE CRITICO: Errore generico: {e}')
-        messagebox.showerror("Errore", f"Si è verificato un errore inaspettato:\n{e}")
+        error_message = f"Si è verificato un errore inaspettato durante l'aggiornamento del listino:\n{e}"
+        print(f'ERRORE CRITICO: {error_message}')
+        messagebox.showerror("Errore Generico", error_message)
+        sys.exit(1) # Esce dal programma con un codice di errore
     finally:
         if conn:
             conn.close()
