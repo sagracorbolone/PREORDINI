@@ -1,3 +1,11 @@
+$(document).on("mobileinit", function () {
+    // Disabilita il preloading e l'ajax per jQuery Mobile per evitare problemi con il caricamento delle pagine
+    $.mobile.ajaxEnabled = false;
+    $.mobile.linkBindingEnabled = false;
+    $.mobile.hashListeningEnabled = false;
+    $.mobile.pushStateEnabled = false;
+});
+
 $(document).on("pagecreate",function(event){
    
    var graphicManager = new GraphicManager();
@@ -152,3 +160,172 @@ $(document).on("pagecreate",function(event){
    });
 
 });
+function initializeMainApplication() {
+    console.log("Inizializzazione applicazione principale...");
+
+    // --- INIZIO: IL TUO CODICE MAIN.JS ESISTENTE ORIGINALE VA QUI SOTTO ---
+    // Questo è un ESEMPIO, devi incollare il tuo vero codice!
+    /*
+    // Esempio di campi input che potrebbero essere generati dal tuo codice originale
+    $('#user-input-fields').html(`
+        <label for="nome">Inserisci il tuo nome:</label>
+        <input type="text" name="nome" id="nome" value="" placeholder="Il tuo nome">
+        <label for="table_number">Inserisci il numero del tavolo:</label>
+        <input type="number" name="table_number" id="table_number" value="" placeholder="Numero del tavolo">
+        <label for="num_people">Quanti siete?</label>
+        <input type="number" name="num_people" id="num_people" value="" placeholder="Numero di persone">
+    `).enhanceWithin(); // Importante per applicare gli stili JQM ai nuovi elementi
+
+    // Supponendo che tu avessi una funzione 'init()' nel tuo main.js originale
+    // che costruiva il listino e altre cose, chiamala qui.
+    // SE HAI UNA FUNZIONE 'init()' CHIAMALA QUI
+    init();
+
+    // Rilega gli eventi dei pulsanti principali se il tuo codice originale lo faceva
+    $("#resoconto-btn").off("click").on("click", function () {
+        // La tua logica originale per il resoconto
+        console.log("Pulsante Vedi resoconto cliccato!");
+        $.mobile.changePage("#pageres");
+    });
+
+    $("#elimina-ordine-btn").off("click").on("click", function () {
+        // La tua logica originale per eliminare l'ordine
+        console.log("Pulsante Elimina ordine cliccato!");
+        dataManager.deleteAllData(); // Esempio
+        $("#lista").empty(); // Pulisci la lista visiva
+        // Forse un refresh della pagina principale o della lista
+        // window.location.reload(true); // Ricarica completa della pagina
+    });
+
+    $("#modifica-btn").off("click").on("click", function () {
+        console.log("Pulsante Modifica Ordine cliccato!");
+        $.mobile.changePage("#pageprinc");
+    });
+
+    $("#conferma-btn").off("click").on("click", function () {
+        console.log("Pulsante Conferma Ordine cliccato!");
+        // Il tuo codice per generare il QR code
+        // generateQrCode(); // Esempio se hai questa funzione
+        $.mobile.changePage("#pageqrcode");
+    });
+
+    $("#nuovo-ordine-btn").off("click").on("click", function () {
+        console.log("Pulsante Nuovo Ordine cliccato!");
+        dataManager.deleteAllData(); // Rimuovi i dati dell'ordine precedente
+        $.mobile.changePage("#pageprinc", { transition: "slide", reverse: true });
+        // Potresti voler ricaricare completamente la pagina per un nuovo inizio
+        // window.location.reload(true);
+    });
+    */
+    // --- FINE: IL TUO CODICE MAIN.JS ESISTENTE ORIGINALE FINISCE QUI SOPRA ---
+
+    // Assicurati che elementi aggiunti dinamicamente vengano stilizzati da JQM
+    // $('#pageprinc').enhanceWithin(); 
+}
+
+
+$(document).ready(function () {
+    // Array delle immagini del tutorial e le loro descrizioni
+    // *** PERCORSO IMMAGINI FINALMENTE CORRETTO ***
+    // Se il tuo index.html è in 'C:\sagra\web\preordini\index.html'
+    // e hai avviato il server da 'C:\sagra\web',
+    // allora il percorso per le immagini è RELATIVO A index.html.
+    // Se le immagini sono in 'C:\sagra\web\preordini\assets\tutorial\',
+    // allora il percorso da index.html è 'assets/tutorial/imgX.jpg'.
+    // NON USARE /preordini/assets/tutorial/ perchè il browser lo concatena male.
+    const tutorialImages = [
+        { src: "assets/tutorial/img1.jpg", description: "Benvenuto! Questa è la schermata principale dell'app." },
+        { src: "assets/tutorial/img2.jpg", description: "Per ordinare, tocca gli elementi del menù." },
+        { src: "assets/tutorial/img3.jpg", description: "Utilizza i pulsanti per aggiungere o rimuovere quantità." },
+        { src: "assets/tutorial/img4.jpg", description: "Tocca 'Vedi resoconto' per controllare il tuo ordine." },
+        { src: "assets/tutorial/img5.jpg", description: "Conferma l'ordine e ricevi il tuo QR Code!" }
+    ];
+    let currentImageIndex = 0; // Inizia dalla prima immagine
+
+    function updateTutorialContent() {
+        if (tutorialImages.length === 0) {
+            console.warn("Nessuna immagine definita per il tutorial.");
+            $.mobile.changePage("#pageprinc", { transition: "none" });
+            return;
+        }
+
+        const currentImage = tutorialImages[currentImageIndex];
+        $('#tutorial-image').attr('src', currentImage.src);
+        $('#tutorial-description').text(currentImage.description);
+        $('#tutorial-title').text(`Guida (${currentImageIndex + 1}/${tutorialImages.length})`);
+
+        // Gestione visibilità pulsanti INDETRO/AVANTI
+        if (currentImageIndex === 0) {
+            $('#prev-tutorial-btn').hide();
+        } else {
+            $('#prev-tutorial-btn').show();
+        }
+
+        // Gestione testo e icona pulsante AVANTI/FINISCI
+        if (currentImageIndex === tutorialImages.length - 1) {
+            $('#next-tutorial-btn').text('FINISCI').removeClass('ui-icon-carat-r').addClass('ui-icon-check');
+        } else {
+            $('#next-tutorial-btn').text('AVANTI').removeClass('ui-icon-check').addClass('ui-icon-carat-r');
+        }
+        
+        // Forziamo il refresh solo se il pulsante è già stato inizializzato da jQuery Mobile
+        // e la pagina corrente è quella del tutorial.
+        if ($('#next-tutorial-btn').hasClass('ui-btn') && $.mobile.activePage.attr("id") === "page-tutorial") {
+             $('#next-tutorial-btn').button('refresh');
+             $('#prev-tutorial-btn').button('refresh'); 
+        }
+    }
+
+    var tutorialSeen = $.cookie('tutorial_images_seen'); // Controlla se il cookie esiste
+
+    // Evento che si attiva quando qualsiasi pagina di jQuery Mobile è stata completamente mostrata
+    $(document).on("pagecontainershow", function(e, ui) {
+        // Se la pagina appena mostrata è la pagina principale
+        if (ui.toPage.attr("id") === "pageprinc") {
+            // Esegui il codice di inizializzazione dell'applicazione principale
+            initializeMainApplication();
+        }
+        // Se la pagina appena mostrata è la pagina del tutorial
+        else if (ui.toPage.attr("id") === "page-tutorial") {
+            updateTutorialContent(); // Carica la prima immagine e aggiorna i pulsanti
+        }
+    });
+
+    if (!tutorialSeen) {
+        // Se il tutorial non è stato ancora visto in questa sessione
+        // jQuery Mobile cambierà pagina e poi attiverà "pagecontainershow" che chiamerà updateTutorialContent
+        $.mobile.changePage("#page-tutorial", { transition: "none" }); 
+        
+        // Gestisce il click sul pulsante "AVANTI"
+        $('#next-tutorial-btn').on('click', function() {
+            if (currentImageIndex < tutorialImages.length - 1) {
+                currentImageIndex++;
+                updateTutorialContent();
+            } else {
+                // Tutorial finito
+                $.cookie('tutorial_images_seen', true, { expires: null }); // Imposta il cookie per la sessione corrente
+                $.mobile.changePage("#pageprinc", { transition: "slide" });
+            }
+        });
+
+        // Gestisce il click sul pulsante "INDIETRO"
+        $('#prev-tutorial-btn').on('click', function() {
+            if (currentImageIndex > 0) {
+                currentImageIndex--;
+                updateTutorialContent();
+            }
+        });
+
+        // Gestisce il click sul pulsante "SALTA"
+        $('#skip-tutorial-btn').on('click', function() {
+            $.cookie('tutorial_images_seen', true, { expires: null }); // Imposta il cookie
+            $.mobile.changePage("#pageprinc", { transition: "slide" });
+        });
+
+    } else {
+        // Se il tutorial è già stato visto in questa sessione, vai direttamente alla pagina principale
+        // jQuery Mobile cambierà pagina e poi attiverà "pagecontainershow" che chiamerà initializeMainApplication
+        $.mobile.changePage("#pageprinc", { transition: "none" });
+    }
+
+}); // Fine di $(document).ready

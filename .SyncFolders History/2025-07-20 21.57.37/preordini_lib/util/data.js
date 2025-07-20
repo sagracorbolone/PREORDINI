@@ -1,9 +1,8 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-07-20T21:34:09.859939)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-07-20T11:32:48.074267)
 
 var elencoPrincipale = [
   "BEVANDE",
   "CONTORNI E VARIE",
-  "MENU",
   "PIATTO UNICO E PRIMI",
   "SECONDI PIATTI"
 ];
@@ -134,28 +133,7 @@ var elencoPietanze = {
       "prezzo": "0.5"
     }
   ],
-  "MENU": [
-    {
-      "id": 43,
-      "descrizione": "MENU 2",
-      "prezzo": "10"
-    },
-    {
-      "id": 44,
-      "descrizione": "MENU 3",
-      "prezzo": "15"
-    },
-    {
-      "id": 45,
-      "descrizione": "MENU 4",
-      "prezzo": "16.5"
-    },
-    {
-      "id": 46,
-      "descrizione": "MENU 5",
-      "prezzo": "20"
-    }
-  ],
+  "MENU": [],
   "PIATTO UNICO E PRIMI": [
     {
       "id": 4,
