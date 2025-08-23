@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-07-20T21:34:09.859939)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-08-23T19:28:11.649546)
 
 var elencoPrincipale = [
   "BEVANDE",
@@ -139,21 +139,6 @@ var elencoPietanze = {
       "id": 43,
       "descrizione": "MENU 2",
       "prezzo": "10"
-    },
-    {
-      "id": 44,
-      "descrizione": "MENU 3",
-      "prezzo": "15"
-    },
-    {
-      "id": 45,
-      "descrizione": "MENU 4",
-      "prezzo": "16.5"
-    },
-    {
-      "id": 46,
-      "descrizione": "MENU 5",
-      "prezzo": "20"
     }
   ],
   "PIATTO UNICO E PRIMI": [
@@ -193,16 +178,6 @@ var elencoPietanze = {
       "id": 6,
       "descrizione": "COSTA",
       "prezzo": "8.5"
-    },
-    {
-      "id": 9,
-      "descrizione": "COSTATA",
-      "prezzo": "18"
-    },
-    {
-      "id": 10,
-      "descrizione": "COSTATA BEN COTTA",
-      "prezzo": "18"
     },
     {
       "id": 19,
