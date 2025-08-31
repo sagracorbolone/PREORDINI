@@ -1,134 +1,53 @@
-# aggiornaListino.py
+
+# AggiornaListino_personalizzato_compat.py
+# - Output data.js IDENTICO al formato originale funzionante:
+#     var elencoPrincipale = [...];
+#     var categorie = [...];
+#     var elencoPietanze = {...};
+#     function Data(){...}
+#     var dataManager = new Data();
+# - Nessuna modifica al DB.
+# - Categorie e pietanze lette in ORDER BY descrizione (come l'originale), ma
+#   con possibilità di riordinare manualmente le pietanze per categoria tramite GUI (campo "Ord.")
+#   + checkbox "Includi". Le scelte vengono ricordate tra le sessioni (ordine_pietanze.json).
+#
+# INTEGRAZIONE: sostituisci questo script al tuo AggiornaListino.py.
+# Non tocca il resto dell'app: il menu parte come prima, il tutorial resta overlay.
 
 import psycopg2
 import json
 import os
 from datetime import datetime
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import ttk, messagebox
 
-# =========================================================
-# CONFIGURAZIONE DATABASE POSTGRESQL
-# Modifica questi valori con i tuoi dati reali del database
-# =========================================================
-db_config = {
-    'user': 'sagra',     # Il tuo utente PostgreSQL (es. 'postgres')
-    'host': 'localhost',         # L'host del tuo database (solitamente 'localhost' per DB locali)
-    'database': 'sagra', # Il nome del tuo database (es. 'sagra_db')
-    'password': 'plutarco', # La tua password PostgreSQL
-    'port': 5432,                # Porta di default di PostgreSQL (di solito 5432)
-}
+# ================== CONFIG ==================
+DB = dict(user='sagra', host='localhost', database='sagra', password='plutarco', port=5432)
+OUTPUT = r'C:/sagra/web/preordini/preordini_lib/util/data.js'
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PREFS = os.path.join(SCRIPT_DIR, 'ordine_pietanze.json')
 
-def aggiorna_listino():
-    conn = None
-    try:
-        conn = psycopg2.connect(**db_config)
-        cur = conn.cursor()
-        print('Connesso al database PostgreSQL.')
-
-        # Query per ottenere le tipologie (categorie)
-        cur.execute('SELECT id, descrizione FROM tipologie ORDER BY descrizione')
-        categorie_rows = cur.fetchall()
-        categorie = [{'id': row[0], 'descrizione': row[1]} for row in categorie_rows]
-
-        all_pietanze = []
-        elenco_pietanze_db = {} # Per mantenere la struttura originale come dal DB
-        
-        # Query per ottenere gli articoli per ogni tipologia
-        for cat in categorie:
-            # MODIFICA QUI: Combinazione di REPLACE e TRIM per gestire i punti finali e i punti prima della virgola
-            cur.execute("""
-                SELECT 
-                    id, 
-                    descrizione, 
-                    TRIM(TRAILING '.' FROM REPLACE(TRIM(TRAILING '0' FROM prezzo::text), '.,', ',')) as prezzo 
-                FROM 
-                    articoli 
-                WHERE 
-                    id_tipologia = %s 
-                ORDER BY 
-                    descrizione
-            """, (cat['id'],))
-            articoli_rows = cur.fetchall()
-            current_category_pietanze = []
-            for row in articoli_rows:
-                pietanza = {'id': row[0], 'descrizione': row[1], 'prezzo': row[2], 'id_tipologia': cat['id'], 'tipologia_desc': cat['descrizione']}
-                all_pietanze.append(pietanza)
-                current_category_pietanze.append({'id': row[0], 'descrizione': row[1], 'prezzo': row[2]})
-            elenco_pietanze_db[cat['descrizione']] = current_category_pietanze
-
-        # --- Finestra di selezione GUI ---
-        root = tk.Tk()
-        root.title("Seleziona Pietanze da includere nel Listino")
-        
-        # Frame per i checkbox
-        checkbox_frame = tk.Frame(root)
-        checkbox_frame.pack(padx=10, pady=10)
-
-        canvas = tk.Canvas(checkbox_frame)
-        scrollbar = tk.Scrollbar(checkbox_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas)
-
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(
-                scrollregion=canvas.bbox("all")
-            )
-        )
-
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        selected_pietanze_vars = []
-        for pietanza in all_pietanze:
-            var = tk.BooleanVar(value=True) # Default: selezionato
-            cb = tk.Checkbutton(scrollable_frame, text=f"{pietanza['tipologia_desc']}: {pietanza['descrizione']} ({pietanza['prezzo']})", variable=var)
-            cb.pack(anchor='w')
-            selected_pietanze_vars.append({'pietanza': pietanza, 'var': var})
-
-        # Funzione per gestire il tasto CONTINUA
-        def continua_action():
-            root.destroy() # Chiude la finestra GUI
-
-        continua_button = tk.Button(root, text="CONTINUA", command=continua_action)
-        continua_button.pack(pady=10)
-
-        root.mainloop()
-
-        # Filtra le pietanze selezionate
-        filtered_elenco_pietanze = {}
-        for cat in categorie:
-            filtered_elenco_pietanze[cat['descrizione']] = []
-
-        for item in selected_pietanze_vars:
-            if item['var'].get(): # Se il checkbox è selezionato
-                pietanza = item['pietanza']
-                # Ricostruisci l'oggetto pietanza come era prima per data.js
-                filtered_elenco_pietanze[pietanza['tipologia_desc']].append({
-                    'id': pietanza['id'],
-                    'descrizione': pietanza['descrizione'],
-                    'prezzo': pietanza['prezzo']
-                })
-        
-        # Prepara elencoPrincipale (solo categorie con almeno un articolo selezionato)
-        elenco_principale = [cat['descrizione'] for cat in categorie if len(filtered_elenco_pietanze[cat['descrizione']]) > 0]
+# ---------- Ordine categorie personalizzato (modifica qui la sequenza) ----------
+CATEGORY_ORDER = [
+    "PIATTO UNICO E PRIMI",
+    "SECONDI PIATTI",
+    "CONTORNI E VARIE",
+    "BEVANDE",
+    "MENU"
+]
+def sort_categories_custom(cats_list):
+    prio = {name: i for i, name in enumerate(CATEGORY_ORDER)}
+    # categorie non presenti in CATEGORY_ORDER finiscono in coda, mantenendo l'ordine attuale
+    return sorted(
+        cats_list,
+        key=lambda c: (prio.get(c['descrizione'], 10_000), cats_list.index(c))
+    )
 
 
-        # ====================================================================
-        # Generazione del contenuto del file data.js con le selezioni
-        # ====================================================================
-        data_js_content = f"// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: {datetime.now().isoformat()})\n\n"
+# ============================================
 
-        # Dati del listino (popolati dalle query al DB)
-        data_js_content += f"var elencoPrincipale = {json.dumps(elenco_principale, indent=2)};\n"
-        data_js_content += f"var categorie = {json.dumps(categorie, indent=2)};\n" # Le categorie rimangono tutte
-        data_js_content += f"var elencoPietanze = {json.dumps(filtered_elenco_pietanze, indent=2)};\n\n"
+JS_BLOCK = r"""
 
-        # Inserimento della definizione della funzione Data() (rimane invariata)
-        data_js_content += """
 // ====================================================================
 // Le funzioni sottostanti gestiscono i dati dell'ordine lato client
 // e includono console.log per il debugging e le opzioni per i cookie.
@@ -239,26 +158,129 @@ function Data(){
 var dataManager = new Data();
 """
 
-        # ====================================================================
-        # Scrittura del file data.js nel percorso specificato.
-        # ====================================================================
-        output_path = 'C:/sagra/web/preordini/preordini_lib/util/data.js' # AGGIORNA QUESTO PERCORSO SE DIVERSO
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+def build_js(elencoPrincipale, categorie, elencoPietanze):
+    lines = []
+    lines.append("// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: %s)\n" % datetime.now().isoformat())
+    lines.append("var elencoPrincipale = " + json.dumps(elencoPrincipale, ensure_ascii=False, indent=2) + ";\n")
+    lines.append("var categorie = " + json.dumps(categorie, ensure_ascii=False, indent=2) + ";\n")
+    lines.append("var elencoPietanze = " + json.dumps(elencoPietanze, ensure_ascii=False, indent=2) + ";\n")
+    lines.append(JS_BLOCK)
+    return "\n".join(lines)
 
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(data_js_content)
-        print(f'File data.js generato e aggiornato con successo in: {output_path}')
+def normalize_price_str(p):
+    """Ritorna una stringa con decimale punto, senza zeri/dot finali inutili (es. '6.50'->'6.5', '9.00'->'9')."""
+    if p is None:
+        return ""
+    s = str(p)
+    s = s.replace(",", ".")
+    if "." in s:
+        s = s.rstrip("0").rstrip(".")
+    return s
 
-    except psycopg2.Error as e:
-        print(f'ERRORE CRITICO: Errore durante l\'aggiornamento del listino: {e}')
-        messagebox.showerror("Errore Database", f"Si è verificato un errore durante la connessione al database o l'esecuzione delle query:\n{e}")
-    except Exception as e:
-        print(f'ERRORE CRITICO: Errore generico: {e}')
-        messagebox.showerror("Errore", f"Si è verificato un errore inaspettato:\n{e}")
-    finally:
-        if conn:
-            conn.close()
-            print('Connessione al database chiusa.')
+def main():
+    conn = psycopg2.connect(**DB); cur = conn.cursor()
+
+    # Categorie e articoli: ORDER BY descrizione (come l'originale)
+    cur.execute('SELECT id, descrizione FROM tipologie ORDER BY descrizione')
+    cats = [{'id': r[0], 'descrizione': r[1]} for r in cur.fetchall()]
+    cats = sort_categories_custom(cats)
+
+    items = []
+    for c in cats:
+        cur.execute("""
+            SELECT id, descrizione, prezzo
+            FROM articoli
+            WHERE id_tipologia=%s
+            ORDER BY descrizione
+        """, (c['id'],))
+        for r in cur.fetchall():
+            prezzo = normalize_price_str(r[2])
+            items.append({'id': r[0], 'descrizione': r[1], 'prezzo': prezzo, 'id_tipologia': c['id']})
+    conn.close()
+
+    # Carica preferenze (se presenti)
+    try:
+        with open(PREFS, 'r', encoding='utf-8') as f:
+            prefs = json.load(f)
+    except:
+        prefs = {"per_category": {}}
+
+    # GUI con scroll
+    root = tk.Tk(); root.title("Aggiorna Listino — ordine personalizzato (compatibile)"); root.minsize(900, 600)
+    canvas = tk.Canvas(root, highlightthickness=0); vsb = ttk.Scrollbar(root, orient="vertical", command=canvas.yview)
+    canvas.configure(yscrollcommand=vsb.set); vsb.pack(side="right", fill="y"); canvas.pack(side="left", fill="both", expand=True)
+    inner = ttk.Frame(canvas); canvas.create_window((0,0), window=inner, anchor="nw")
+    inner.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+
+    per_cat_widgets = {c['id']: [] for c in cats}
+
+    for c in cats:
+        lf = ttk.LabelFrame(inner, text=f"[{c['id']}] {c['descrizione']}"); lf.pack(fill="x", expand=True, padx=10, pady=8)
+        header = ttk.Frame(lf); header.pack(fill="x", padx=8, pady=(4,2))
+        ttk.Label(header, text="Includi", width=8).grid(row=0, column=0, sticky="w")
+        ttk.Label(header, text="Ord.", width=6).grid(row=0, column=1, sticky="w")
+        ttk.Label(header, text="Descrizione (Prezzo)").grid(row=0, column=2, sticky="w")
+
+        cat_items = [x for x in items if x['id_tipologia']==c['id']]
+        nxt = 1
+        for idx, p in enumerate(cat_items):
+            row = ttk.Frame(lf); row.pack(fill="x", padx=8, pady=1)
+            include_default = prefs.get("per_category", {}).get(str(c['id']), {}).get(str(p['id']), {}).get("include")
+            include_default = True if include_default is None else bool(include_default)
+            var_chk = tk.BooleanVar(value=include_default); ttk.Checkbutton(row, variable=var_chk).grid(row=0, column=0, sticky="w", padx=(0,6))
+
+            saved_order = prefs.get("per_category", {}).get(str(c['id']), {}).get(str(p['id']), {}).get("order")
+            ord_val = saved_order if (isinstance(saved_order,int) and saved_order>0) else nxt
+            if not isinstance(saved_order,int) or saved_order<=0: nxt += 1
+            var_ord = tk.StringVar(value=str(ord_val)); ttk.Entry(row, textvariable=var_ord, width=6, justify="right").grid(row=0, column=1, sticky="w", padx=(0,10))
+
+            ttk.Label(row, text=f"{p['descrizione']} ({p['prezzo']})").grid(row=0, column=2, sticky="w")
+            per_cat_widgets[c['id']].append({'pietanza':p,'var_chk':var_chk,'var_ord':var_ord,'idx':idx})
+
+    def on_save():
+        elencoPietanze = {c['descrizione']: [] for c in cats}
+        for c in cats:
+            rows = per_cat_widgets[c['id']]
+            ord_rows = []
+            for r in rows:
+                if not r['var_chk'].get(): continue
+                try: ov = int(r['var_ord'].get())
+                except: ov = 10_000_000
+                ord_rows.append((ov, r['idx'], r['pietanza']))
+            ord_rows.sort(key=lambda t: (t[0], t[1]))
+            for _,__,p in ord_rows:
+                elencoPietanze[c['descrizione']].append({'id': p['id'], 'descrizione': p['descrizione'], 'prezzo': p['prezzo']})
+
+        elencoPrincipale = [c['descrizione'] for c in cats if elencoPietanze[c['descrizione']]]
+        categorie = cats
+
+        js = []
+        js.append("// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: %s)\n" % datetime.now().isoformat())
+        js.append("var elencoPrincipale = " + json.dumps(elencoPrincipale, ensure_ascii=False, indent=2) + ";\n")
+        js.append("var categorie = " + json.dumps(categorie, ensure_ascii=False, indent=2) + ";\n")
+        js.append("var elencoPietanze = " + json.dumps(elencoPietanze, ensure_ascii=False, indent=2) + ";\n")
+        js.append(JS_BLOCK)
+
+        os.makedirs(os.path.dirname(OUTPUT), exist_ok=True)
+        with open(OUTPUT, 'w', encoding='utf-8') as f:
+            f.write("".join(js))
+
+        prefs_out = {"per_category": {}}
+        for c in cats:
+            prefs_out["per_category"][str(c['id'])] = {}
+            for r in per_cat_widgets[c['id']]:
+                p = r['pietanza']
+                try: ov = int(r['var_ord'].get())
+                except: ov = None
+                prefs_out["per_category"][str(c['id'])][str(p['id'])] = {"order": ov, "include": bool(r['var_chk'].get())}
+        with open(PREFS, 'w', encoding='utf-8') as f:
+            json.dump(prefs_out, f, ensure_ascii=False, indent=2)
+
+        messagebox.showinfo("Completato", f"data.js generato in:\n{OUTPUT}")
+        root.destroy()
+
+    ttk.Button(root, text="CONTINUA", command=on_save).pack(pady=10)
+    root.mainloop()
 
 if __name__ == "__main__":
-    aggiorna_listino()
+    main()

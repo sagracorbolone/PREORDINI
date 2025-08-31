@@ -1,25 +1,11 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-07-20T21:34:09.859939)
-
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-09-01T00:05:17.771917)
 var elencoPrincipale = [
-  "BEVANDE",
-  "CONTORNI E VARIE",
-  "MENU",
   "PIATTO UNICO E PRIMI",
-  "SECONDI PIATTI"
+  "SECONDI PIATTI",
+  "CONTORNI E VARIE",
+  "BEVANDE"
 ];
 var categorie = [
-  {
-    "id": 5,
-    "descrizione": "BEVANDE"
-  },
-  {
-    "id": 4,
-    "descrizione": "CONTORNI E VARIE"
-  },
-  {
-    "id": 6,
-    "descrizione": "MENU"
-  },
   {
     "id": 1,
     "descrizione": "PIATTO UNICO E PRIMI"
@@ -27,90 +13,124 @@ var categorie = [
   {
     "id": 3,
     "descrizione": "SECONDI PIATTI"
+  },
+  {
+    "id": 4,
+    "descrizione": "CONTORNI E VARIE"
+  },
+  {
+    "id": 5,
+    "descrizione": "BEVANDE"
+  },
+  {
+    "id": 6,
+    "descrizione": "MENU"
   }
 ];
 var elencoPietanze = {
-  "BEVANDE": [
+  "PIATTO UNICO E PRIMI": [
     {
-      "id": 29,
-      "descrizione": "ACQUA FRIZZ. 0,50L",
-      "prezzo": "1"
+      "id": 2,
+      "descrizione": "REGINETTE CINGHIALE",
+      "prezzo": "9"
     },
     {
-      "id": 28,
-      "descrizione": "ACQUA NAT. 0,50L",
-      "prezzo": "1"
+      "id": 3,
+      "descrizione": "GNOCCHI RAGU'",
+      "prezzo": "7"
     },
     {
-      "id": 37,
-      "descrizione": "ARANCIATA LATTINA 0,33L",
-      "prezzo": "2.5"
-    },
+      "id": 4,
+      "descrizione": "GNOCCHI ANATRA",
+      "prezzo": "7"
+    }
+  ],
+  "SECONDI PIATTI": [
     {
-      "id": 36,
-      "descrizione": "BICCH. BIRRA 0,40L",
-      "prezzo": "4.5"
-    },
-    {
-      "id": 31,
-      "descrizione": "BICCH. VINO BIANCO",
-      "prezzo": "1"
-    },
-    {
-      "id": 30,
-      "descrizione": "BICCH. VINO ROSSO",
-      "prezzo": "1"
-    },
-    {
-      "id": 40,
-      "descrizione": "BOTT.BIANCO SELEZ.",
+      "id": 12,
+      "descrizione": "TRIPPE",
       "prezzo": "8"
     },
     {
-      "id": 41,
-      "descrizione": "BOTT.PROSECCO DOC",
-      "prezzo": "10"
+      "id": 6,
+      "descrizione": "COSTA",
+      "prezzo": "9"
     },
     {
-      "id": 39,
-      "descrizione": "BOTT.ROSSO SELEZ",
-      "prezzo": "8"
+      "id": 7,
+      "descrizione": "SALSICCIA",
+      "prezzo": "9"
     },
     {
-      "id": 33,
-      "descrizione": "CARAFFA BIANCO 0,5L",
-      "prezzo": "3.5"
+      "id": 8,
+      "descrizione": "MISTO",
+      "prezzo": "9"
     },
     {
-      "id": 35,
-      "descrizione": "CARAFFA BIANCO 1L",
-      "prezzo": "6"
+      "id": 11,
+      "descrizione": "PETTO DI POLLO",
+      "prezzo": "8.5"
     },
     {
-      "id": 32,
-      "descrizione": "CARAFFA ROSSO 0,5L",
-      "prezzo": "3.5"
+      "id": 14,
+      "descrizione": "STINCO",
+      "prezzo": "12.5"
     },
     {
-      "id": 34,
-      "descrizione": "CARAFFA ROSSO 1L",
-      "prezzo": "6"
+      "id": 13,
+      "descrizione": "CAPRIOLO E FUNGHI",
+      "prezzo": "13"
     },
     {
-      "id": 38,
-      "descrizione": "COCA-COLA LATTINA 0,33L",
-      "prezzo": "2.5"
+      "id": 15,
+      "descrizione": "BACCALA'",
+      "prezzo": "13"
     },
     {
-      "id": 47,
-      "descrizione": "THE LATTINA 0,33L",
-      "prezzo": "2.5"
+      "id": 16,
+      "descrizione": "CALAMARI",
+      "prezzo": "11.5"
+    },
+    {
+      "id": 9,
+      "descrizione": "COSTATA",
+      "prezzo": "20"
+    },
+    {
+      "id": 10,
+      "descrizione": "COSTATA BEN COTTA",
+      "prezzo": "20"
+    },
+    {
+      "id": 18,
+      "descrizione": "FRITTO MISTO",
+      "prezzo": "13"
+    },
+    {
+      "id": 21,
+      "descrizione": "STRATAGLIATA",
+      "prezzo": "15"
+    },
+    {
+      "id": 19,
+      "descrizione": "FORMAGGIO",
+      "prezzo": "5.5"
+    },
+    {
+      "id": 20,
+      "descrizione": "FORMAGGIO COTTO",
+      "prezzo": "7.5"
+    },
+    {
+      "id": 52,
+      "descrizione": "GRIGLIATA PESCE",
+      "prezzo": "19"
     }
   ],
   "CONTORNI E VARIE": [
     {
-      "id": 25,
-      "descrizione": "FAGIOLI",
+      "id": 23,
+      "descrizione": "PATATINE",
       "prezzo": "3"
     },
     {
@@ -119,8 +139,8 @@ var elencoPietanze = {
       "prezzo": "5.5"
     },
     {
-      "id": 23,
-      "descrizione": "PATATINE",
+      "id": 25,
+      "descrizione": "FAGIOLI",
       "prezzo": "3"
     },
     {
@@ -134,127 +154,84 @@ var elencoPietanze = {
       "prezzo": "0.5"
     }
   ],
-  "MENU": [
+  "BEVANDE": [
     {
-      "id": 43,
-      "descrizione": "MENU 2",
+      "id": 28,
+      "descrizione": "ACQUA NAT. 0,50L",
+      "prezzo": "1"
+    },
+    {
+      "id": 29,
+      "descrizione": "ACQUA FRIZZ. 0,50L",
+      "prezzo": "1"
+    },
+    {
+      "id": 36,
+      "descrizione": "BICCH. BIRRA 0,40L",
+      "prezzo": "4.5"
+    },
+    {
+      "id": 38,
+      "descrizione": "COCA-COLA LATTINA 0,33L",
+      "prezzo": "2.5"
+    },
+    {
+      "id": 37,
+      "descrizione": "ARANCIATA LATTINA 0,33L",
+      "prezzo": "2.5"
+    },
+    {
+      "id": 30,
+      "descrizione": "BICCH. VINO ROSSO",
+      "prezzo": "1"
+    },
+    {
+      "id": 31,
+      "descrizione": "BICCH. VINO BIANCO",
+      "prezzo": "1"
+    },
+    {
+      "id": 32,
+      "descrizione": "CARAFFA ROSSO 0,5L",
+      "prezzo": "3.5"
+    },
+    {
+      "id": 33,
+      "descrizione": "CARAFFA BIANCO 0,5L",
+      "prezzo": "3.5"
+    },
+    {
+      "id": 47,
+      "descrizione": "THE LATTINA 0,33L",
+      "prezzo": "2.5"
+    },
+    {
+      "id": 34,
+      "descrizione": "CARAFFA ROSSO 1L",
+      "prezzo": "6"
+    },
+    {
+      "id": 35,
+      "descrizione": "CARAFFA BIANCO 1L",
+      "prezzo": "6"
+    },
+    {
+      "id": 41,
+      "descrizione": "BOTT.PROSECCO DOC",
       "prezzo": "10"
     },
     {
-      "id": 44,
-      "descrizione": "MENU 3",
-      "prezzo": "15"
+      "id": 40,
+      "descrizione": "BOTT.BIANCO SELEZ.",
+      "prezzo": "8"
     },
     {
-      "id": 45,
-      "descrizione": "MENU 4",
-      "prezzo": "16.5"
-    },
-    {
-      "id": 46,
-      "descrizione": "MENU 5",
-      "prezzo": "20"
-    }
-  ],
-  "PIATTO UNICO E PRIMI": [
-    {
-      "id": 4,
-      "descrizione": "GNOCCHI ANATRA",
-      "prezzo": "6.5"
-    },
-    {
-      "id": 3,
-      "descrizione": "GNOCCHI RAGU'",
-      "prezzo": "6.5"
-    },
-    {
-      "id": 2,
-      "descrizione": "PASTA CINGHIALE",
+      "id": 39,
+      "descrizione": "BOTT.ROSSO SELEZ",
       "prezzo": "8"
     }
   ],
-  "SECONDI PIATTI": [
-    {
-      "id": 15,
-      "descrizione": "BACCALA'",
-      "prezzo": "12"
-    },
-    {
-      "id": 16,
-      "descrizione": "CALAMARI",
-      "prezzo": "10.5"
-    },
-    {
-      "id": 13,
-      "descrizione": "CAPRIOLO E FUNGHI",
-      "prezzo": "13"
-    },
-    {
-      "id": 6,
-      "descrizione": "COSTA",
-      "prezzo": "8.5"
-    },
-    {
-      "id": 9,
-      "descrizione": "COSTATA",
-      "prezzo": "18"
-    },
-    {
-      "id": 10,
-      "descrizione": "COSTATA BEN COTTA",
-      "prezzo": "18"
-    },
-    {
-      "id": 19,
-      "descrizione": "FORMAGGIO",
-      "prezzo": "5.5"
-    },
-    {
-      "id": 20,
-      "descrizione": "FORMAGGIO COTTO",
-      "prezzo": "7"
-    },
-    {
-      "id": 18,
-      "descrizione": "FRITTO MISTO",
-      "prezzo": "12.5"
-    },
-    {
-      "id": 22,
-      "descrizione": "GALLETTO ALLA BRACE",
-      "prezzo": "10"
-    },
-    {
-      "id": 8,
-      "descrizione": "MISTO",
-      "prezzo": "8.5"
-    },
-    {
-      "id": 11,
-      "descrizione": "PETTO DI POLLO",
-      "prezzo": "8.5"
-    },
-    {
-      "id": 7,
-      "descrizione": "SALSICCIA",
-      "prezzo": "8.5"
-    },
-    {
-      "id": 14,
-      "descrizione": "STINCO",
-      "prezzo": "12"
-    },
-    {
-      "id": 21,
-      "descrizione": "STRATAGLIATA",
-      "prezzo": "14"
-    },
-    {
-      "id": 12,
-      "descrizione": "TRIPPE",
-      "prezzo": "8"
-    }
-  ]
+  "MENU": []
 };
 
 
