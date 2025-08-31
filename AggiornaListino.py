@@ -1,192 +1,343 @@
-# aggiornaListino.py
+
+# AggiornaListino_ordinabile_persistente_SCROLL_FIX.py
+# Fix robusto per lo scroll: bind globale (bind_all) di MouseWheel/Trackpad e Button-4/5 (Linux),
+# scrollbar sempre visibile, tasti PgUp/PgDn/Home/End, e aggiornamento scrollregion affidabile.
 
 import psycopg2
 import json
 import os
 from datetime import datetime
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, ttk
+import platform
 
-# =========================================================
-# CONFIGURAZIONE DATABASE POSTGRESQL
-# Modifica questi valori con i tuoi dati reali del database
-# =========================================================
 db_config = {
-    'user': 'sagra',     # Il tuo utente PostgreSQL (es. 'postgres')
-    'host': 'localhost',         # L'host del tuo database (solitamente 'localhost' per DB locali)
-    'database': 'sagra', # Il nome del tuo database (es. 'sagra_db')
-    'password': 'plutarco', # La tua password PostgreSQL
-    'port': 5432,                # Porta di default di PostgreSQL (di solito 5432)
+    'user': 'sagra',
+    'host': 'localhost',
+    'database': 'sagra',
+    'password': 'plutarco',
+    'port': 5432,
 }
 
+OUTPUT_DATA_JS = r'C:/sagra/web/preordini/preordini_lib/util/data.js'
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PREFS_PATH = os.path.join(SCRIPT_DIR, 'ordine_pietanze.json')
+
+# ---------- Utilità persistenza ----------
+def load_prefs():
+    try:
+        with open(PREFS_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"per_category": {}}
+    except Exception as e:
+        print("ATTENZIONE: impossibile leggere le preferenze:", e)
+        return {"per_category": {}}
+
+def save_prefs(per_cat_widgets):
+    prefs = {"per_category": {}}
+    for cat_id, rows in per_cat_widgets.items():
+        prefs["per_category"][str(cat_id)] = {}
+        for r in rows:
+            p = r['pietanza']
+            include = bool(r['var_chk'].get())
+            try:
+                ord_val = int(r['var_ord'].get())
+            except Exception:
+                ord_val = None
+            prefs["per_category"][str(cat_id)][str(p['id'])] = {
+                "order": ord_val,
+                "include": include
+            }
+    try:
+        with open(PREFS_PATH, 'w', encoding='utf-8') as f:
+            json.dump(prefs, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("ATTENZIONE: impossibile salvare le preferenze:", e)
+
+def get_pref_order(prefs, cat_id, item_id):
+    try:
+        val = prefs["per_category"].get(str(cat_id), {}).get(str(item_id), {})
+        return val.get("order", None)
+    except Exception:
+        return None
+
+def get_pref_include(prefs, cat_id, item_id):
+    try:
+        val = prefs["per_category"].get(str(cat_id), {}).get(str(item_id), {})
+        inc = val.get("include", None)
+        if inc is None:
+            return True
+        return bool(inc)
+    except Exception:
+        return True
+
+# ---------- Widget scrollabile con bind globale ----------
+class ScrollableFrame(ttk.Frame):
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        self.canvas = tk.Canvas(self, highlightthickness=0)
+        self.vsb = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.vsb.set)
+
+        self.vsb.pack(side="right", fill="y")
+        self.canvas.pack(side="left", fill="both", expand=True)
+
+        self.inner = ttk.Frame(self.canvas)
+        self.window_id = self.canvas.create_window((0, 0), window=self.inner, anchor="nw")
+
+        # Scroll più dolce
+        self.canvas.configure(yscrollincrement=20)
+
+        # Aggiornamenti di layout
+        self.inner.bind("<Configure>", self._on_frame_configure)
+        self.canvas.bind("<Configure>", self._on_canvas_configure)
+
+        # Bind globali per lo scroll (funzionano anche se il focus è su Entry o altre widget)
+        self._install_global_scroll_bindings()
+
+        # Tasti di navigazione
+        for seq in ("<Prior>", "<Next>", "<Home>", "<End>", "<Up>", "<Down>"):
+            self.canvas.bind_all(seq, self._on_keys)
+
+    def _on_keys(self, event):
+        if event.keysym == "Prior":  # PageUp
+            self.canvas.yview_scroll(-1, "page")
+        elif event.keysym == "Next": # PageDown
+            self.canvas.yview_scroll(1, "page")
+        elif event.keysym == "Home":
+            self.canvas.yview_moveto(0)
+        elif event.keysym == "End":
+            self.canvas.yview_moveto(1)
+        elif event.keysym == "Up":
+            self.canvas.yview_scroll(-1, "units")
+        elif event.keysym == "Down":
+            self.canvas.yview_scroll(1, "units")
+
+    def _on_frame_configure(self, event=None):
+        # Aggiorna la scrollregion quando il contenuto cambia
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+
+    def _on_canvas_configure(self, event):
+        # Mantieni la larghezza dell'inner pari alla canvas
+        self.canvas.itemconfigure(self.window_id, width=event.width)
+
+    # --- Bind globali mousewheel/trackpad ---
+    def _install_global_scroll_bindings(self):
+        system = platform.system()
+
+        def _on_mousewheel(event):
+            # Windows e macOS
+            if event.delta:
+                self.canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+
+        def _on_mousewheel_linux_up(event):
+            self.canvas.yview_scroll(-3, "units")
+
+        def _on_mousewheel_linux_down(event):
+            self.canvas.yview_scroll(3, "units")
+
+        if system == "Windows" or system == "Darwin":
+            self.canvas.bind_all("<MouseWheel>", _on_mousewheel, add="+")
+        else:
+            # Linux: Button-4/5
+            self.canvas.bind_all("<Button-4>", _on_mousewheel_linux_up, add="+")
+            self.canvas.bind_all("<Button-5>", _on_mousewheel_linux_down, add="+")
+
+# ---------- Logica principale ----------
 def aggiorna_listino():
     conn = None
     try:
+        prefs = load_prefs()
+
         conn = psycopg2.connect(**db_config)
         cur = conn.cursor()
         print('Connesso al database PostgreSQL.')
 
-        # Query per ottenere le tipologie (categorie)
-        cur.execute('SELECT id, descrizione FROM tipologie ORDER BY descrizione')
+        # Categorie in ordine naturale
+        cur.execute('SELECT id, descrizione FROM tipologie')
         categorie_rows = cur.fetchall()
         categorie = [{'id': row[0], 'descrizione': row[1]} for row in categorie_rows]
 
+        # Pietanze per categoria (ordine naturale DB)
         all_pietanze = []
-        elenco_pietanze_db = {} # Per mantenere la struttura originale come dal DB
-        
-        # Query per ottenere gli articoli per ogni tipologia
         for cat in categorie:
-            # MODIFICA QUI: Combinazione di REPLACE e TRIM per gestire i punti finali e i punti prima della virgola
             cur.execute("""
                 SELECT 
                     id, 
                     descrizione, 
-                    TRIM(TRAILING '.' FROM REPLACE(TRIM(TRAILING '0' FROM prezzo::text), '.,', ',')) as prezzo 
-                FROM 
-                    articoli 
-                WHERE 
-                    id_tipologia = %s 
-                ORDER BY 
-                    descrizione
+                    TRIM(TRAILING '.' FROM REPLACE(TRIM(TRAILING '0' FROM prezzo::text), '.', ',')) as prezzo 
+                FROM articoli 
+                WHERE id_tipologia = %s
             """, (cat['id'],))
-            articoli_rows = cur.fetchall()
-            current_category_pietanze = []
-            for row in articoli_rows:
-                pietanza = {'id': row[0], 'descrizione': row[1], 'prezzo': row[2], 'id_tipologia': cat['id'], 'tipologia_desc': cat['descrizione']}
-                all_pietanze.append(pietanza)
-                current_category_pietanze.append({'id': row[0], 'descrizione': row[1], 'prezzo': row[2]})
-            elenco_pietanze_db[cat['descrizione']] = current_category_pietanze
-
-        # --- Finestra di selezione GUI ---
-        root = tk.Tk()
-        root.title("Seleziona Pietanze da includere nel Listino")
-        
-        # Frame per i checkbox
-        checkbox_frame = tk.Frame(root)
-        checkbox_frame.pack(padx=10, pady=10)
-
-        canvas = tk.Canvas(checkbox_frame)
-        scrollbar = tk.Scrollbar(checkbox_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas)
-
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(
-                scrollregion=canvas.bbox("all")
-            )
-        )
-
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        selected_pietanze_vars = []
-        for pietanza in all_pietanze:
-            var = tk.BooleanVar(value=True) # Default: selezionato
-            cb = tk.Checkbutton(scrollable_frame, text=f"{pietanza['tipologia_desc']}: {pietanza['descrizione']} ({pietanza['prezzo']})", variable=var)
-            cb.pack(anchor='w')
-            selected_pietanze_vars.append({'pietanza': pietanza, 'var': var})
-
-        # Funzione per gestire il tasto CONTINUA
-        def continua_action():
-            root.destroy() # Chiude la finestra GUI
-
-        continua_button = tk.Button(root, text="CONTINUA", command=continua_action)
-        continua_button.pack(pady=10)
-
-        root.mainloop()
-
-        # Filtra le pietanze selezionate
-        filtered_elenco_pietanze = {}
-        for cat in categorie:
-            filtered_elenco_pietanze[cat['descrizione']] = []
-
-        for item in selected_pietanze_vars:
-            if item['var'].get(): # Se il checkbox è selezionato
-                pietanza = item['pietanza']
-                # Ricostruisci l'oggetto pietanza come era prima per data.js
-                filtered_elenco_pietanze[pietanza['tipologia_desc']].append({
-                    'id': pietanza['id'],
-                    'descrizione': pietanza['descrizione'],
-                    'prezzo': pietanza['prezzo']
+            for row in cur.fetchall():
+                all_pietanze.append({
+                    'id': row[0],
+                    'descrizione': row[1],
+                    'prezzo': row[2],
+                    'id_tipologia': cat['id'],
+                    'tipologia_desc': cat['descrizione']
                 })
-        
-        # Prepara elencoPrincipale (solo categorie con almeno un articolo selezionato)
-        elenco_principale = [cat['descrizione'] for cat in categorie if len(filtered_elenco_pietanze[cat['descrizione']]) > 0]
 
+        # --- GUI ---
+        root = tk.Tk()
+        root.title("Aggiorna Listino — Seleziona Pietanze e Ordine")
+        root.minsize(960, 640)
 
-        # ====================================================================
-        # Generazione del contenuto del file data.js con le selezioni
-        # ====================================================================
-        data_js_content = f"// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: {datetime.now().isoformat()})\n\n"
+        # Barra superiore (filtra)
+        topbar = ttk.Frame(root)
+        topbar.pack(fill="x", padx=10, pady=6)
 
-        # Dati del listino (popolati dalle query al DB)
-        data_js_content += f"var elencoPrincipale = {json.dumps(elenco_principale, indent=2)};\n"
-        data_js_content += f"var categorie = {json.dumps(categorie, indent=2)};\n" # Le categorie rimangono tutte
-        data_js_content += f"var elencoPietanze = {json.dumps(filtered_elenco_pietanze, indent=2)};\n\n"
+        ttk.Label(topbar, text="Filtra:").pack(side="left")
+        filter_var = tk.StringVar()
+        filter_entry = ttk.Entry(topbar, textvariable=filter_var, width=30)
+        filter_entry.pack(side="left", padx=(6, 12))
 
-        # Inserimento della definizione della funzione Data() (rimane invariata)
-        data_js_content += """
-// ====================================================================
-// Le funzioni sottostanti gestiscono i dati dell'ordine lato client
-// e includono console.log per il debugging e le opzioni per i cookie.
-// ====================================================================
+        # Area scrollabile
+        scroll = ScrollableFrame(root)
+        scroll.pack(fill="both", expand=True)
+        inner = scroll.inner
 
-function Data(){
+        per_cat_widgets = {cat['id']: [] for cat in categorie}
+
+        # Costruzione contenuti
+        for cat in categorie:
+            lf = ttk.LabelFrame(inner, text=f"[{cat['id']}] {cat['descrizione']}")
+            lf.pack(fill="x", expand=True, padx=10, pady=8)
+
+            cat_items = [p for p in all_pietanze if p['id_tipologia'] == cat['id']]
+            if not cat_items:
+                ttk.Label(lf, text="(Nessuna pietanza)").pack(anchor="w", padx=8, pady=2)
+                continue
+
+            header = ttk.Frame(lf)
+            header.pack(fill="x", padx=8, pady=(4,2))
+            ttk.Label(header, text="Includi", width=8).grid(row=0, column=0, sticky="w")
+            ttk.Label(header, text="Ord.", width=6).grid(row=0, column=1, sticky="w")
+            ttk.Label(header, text="Descrizione (Prezzo)").grid(row=0, column=2, sticky="w")
+
+            next_default = 1
+            for idx, p in enumerate(cat_items):
+                rowf = ttk.Frame(lf)
+                rowf.pack(fill="x", padx=8, pady=1)
+
+                include_default = get_pref_include(prefs, cat['id'], p['id'])
+                var_chk = tk.BooleanVar(value=include_default)
+                chk = ttk.Checkbutton(rowf, variable=var_chk)
+                chk.grid(row=0, column=0, sticky="w", padx=(0,6))
+
+                saved_order = get_pref_order(prefs, cat['id'], p['id'])
+                if isinstance(saved_order, int) and saved_order > 0:
+                    ord_val = saved_order
+                else:
+                    ord_val = next_default
+                    next_default += 1
+
+                var_ord = tk.StringVar(value=str(ord_val))
+                ent = ttk.Entry(rowf, textvariable=var_ord, width=6, justify="right")
+                ent.grid(row=0, column=1, sticky="w", padx=(0,10))
+
+                ttk.Label(rowf, text=f"{p['descrizione']} ({p['prezzo']})").grid(row=0, column=2, sticky="w")
+
+                per_cat_widgets[cat['id']].append({
+                    'pietanza': p,
+                    'var_chk': var_chk,
+                    'var_ord': var_ord,
+                    'original_index': idx,
+                    'rowf': rowf
+                })
+
+        # Filtro live: mostra/nascondi righe senza distruggere il layout
+        def apply_filter(*args):
+            q = filter_var.get().strip().lower()
+            for cat_id, rows in per_cat_widgets.items():
+                for r in rows:
+                    txt = f"{r['pietanza']['descrizione']} ({r['pietanza']['prezzo']})".lower()
+                    visible = (q in txt) if q else True
+                    try:
+                        if visible:
+                            r['rowf'].pack(fill="x", padx=8, pady=1)
+                        else:
+                            r['rowf'].pack_forget()
+                    except Exception:
+                        pass
+            # aggiornare scrollregion
+            inner.update_idletasks()
+            scroll.canvas.configure(scrollregion=scroll.canvas.bbox("all"))
+
+        filter_var.trace_add("write", apply_filter)
+
+        # Barra inferiore
+        bottombar = ttk.Frame(root)
+        bottombar.pack(fill="x", padx=10, pady=8)
+
+        def on_continua():
+            save_prefs(per_cat_widgets)
+
+            filtered_elenco_pietanze = {cat['descrizione']: [] for cat in categorie}
+
+            for cat in categorie:
+                rows = per_cat_widgets[cat['id']]
+                ordered = []
+                for r in rows:
+                    p = r['pietanza']
+                    if not r['var_chk'].get():
+                        continue
+                    try:
+                        ord_val = int(r['var_ord'].get())
+                    except Exception:
+                        ord_val = 10_000_000
+                    ordered.append((ord_val, r['original_index'], p))
+
+                ordered.sort(key=lambda t: (t[0], t[1]))
+                for _, __, p in ordered:
+                    filtered_elenco_pietanze[next(c['descrizione'] for c in categorie if c['id']==p['id_tipologia'])].append({
+                        'id': p['id'],
+                        'descrizione': p['descrizione'],
+                        'prezzo': p['prezzo']
+                    })
+
+            elenco_principale = [cat['descrizione'] for cat in categorie if filtered_elenco_pietanze[cat['descrizione']]]
+
+            data_js_content = f"// data.js - Generato automaticamente (Data: {datetime.now().isoformat()})\n\n"
+            data_js_content += f"var elencoPrincipale = {json.dumps(elenco_principale, indent=2, ensure_ascii=False)};\n"
+            data_js_content += f"var categorie = {json.dumps(categorie, indent=2, ensure_ascii=False)};\n"
+            data_js_content += f"var elencoPietanze = {json.dumps(filtered_elenco_pietanze, indent=2, ensure_ascii=False)};\n\n"
+            data_js_content += r"""function Data(){
    var riferimentoHashMap = "_hashmap";
    var riferimentoCoperti = "_coperti";
 
    this.getInstanceHashmap = function(){
       function recreateHashmap(value){
-         console.log("DEBUG (data.js): recreateHashmap - input value:", value); // DEBUG
          var hashmap = new HashMap();
-         if (value && Array.isArray(value)) { // Assicurati che 'value' sia un array valido
+         if (value && Array.isArray(value)) {
              for(var i = 0; i < value.length; i++){
-                // Assicurati che gli oggetti all'interno dell'array abbiano le proprietà key e val
                 if (value[i] && typeof value[i].key !== 'undefined' && typeof value[i].val !== 'undefined') {
-                    console.log("DEBUG (data.js): recreateHashmap - Putting:", value[i].key, value[i].val); // DEBUG
                     hashmap.put(value[i].key, value[i].val);
-                } else {
-                    console.warn("WARNING (data.js): recreateHashmap - Invalid item in value array, skipping:", value[i]); // DEBUG
                 }
              }
-         } else {
-             console.warn("WARNING (data.js): recreateHashmap - 'value' is not a valid array or is empty:", value); // DEBUG
          }
-         console.log("DEBUG (data.js): recreateHashmap - Recreated hashmap size:", hashmap.size(), "content:", hashmap); // DEBUG
          return hashmap;
       }
-
       var hashmapCookieValue = $.cookie(riferimentoHashMap);
-      console.log("DEBUG (data.js): getInstanceHashmap - Raw hashmap cookie value:", hashmapCookieValue); // DEBUG
-
-      if(typeof hashmapCookieValue !== 'undefined' && hashmapCookieValue !== null && hashmapCookieValue !== ""){  //esiste e non è vuoto
+      if(typeof hashmapCookieValue !== 'undefined' && hashmapCookieValue !== null && hashmapCookieValue !== ""){
          try {
              var parsedCookie = JSON.parse(hashmapCookieValue);
-             console.log("DEBUG (data.js): getInstanceHashmap - Parsed cookie value:", parsedCookie); // DEBUG
-             // Assicurati che parsedCookie.value esista e sia un array
              if (parsedCookie && parsedCookie.value && Array.isArray(parsedCookie.value)) {
                  return recreateHashmap(parsedCookie.value);
              } else {
-                 console.error("ERROR (data.js): getInstanceHashmap - Parsed cookie does not contain a valid 'value' array. Resetting data.", parsedCookie); // DEBUG
-                 // Resetta in caso di struttura del cookie non valida
                  this.deleteAllData();
                  var newHashmap = new HashMap();
                  this.saveInstanceHashmap(newHashmap);
                  return newHashmap;
              }
          } catch (e) {
-             console.error("ERROR (data.js): getInstanceHashmap - Error parsing hashmap cookie. Resetting data.", e, "Raw value:", hashmapCookieValue); // DEBUG
-             // Se c'è un errore di parsing (es. cookie corrotto), resettiamo.
              this.deleteAllData();
              var newHashmap = new HashMap();
              this.saveInstanceHashmap(newHashmap);
              return newHashmap;
          }
       } else {
-         console.log("DEBUG (data.js): getInstanceHashmap - Hashmap cookie not found or empty, creating new hashmap."); // DEBUG
          var hashmap = new HashMap();
          this.saveInstanceHashmap(hashmap);
          return hashmap;
@@ -194,67 +345,53 @@ function Data(){
    }
 
    this.saveInstanceHashmap = function(hashmap){
-      console.log("DEBUG (data.js): saveInstanceHashmap - Saving hashmap to cookie. Hashmap object:", hashmap, "Value array to stringify:", hashmap.value); // DEBUG
-      $.cookie(
-         riferimentoHashMap,
-         JSON.stringify(hashmap),
-         { expires: 7, path: '/', json: true } // AGGIUNTO json: true
-      );
-      console.log("DEBUG (data.js): saveInstanceHashmap - Cookie saved. Current cookie value (via $.cookie):", $.cookie(riferimentoHashMap)); // DEBUG
-      console.log("DEBUG (data.js): saveInstanceHashmap - Raw document.cookie after save:", document.cookie); // NUOVO DEBUG: Controlla il document.cookie raw
+      $.cookie(riferimentoHashMap, JSON.stringify(hashmap), { expires: 7, path: '/', json: true });
    }
 
    this.getInstanceCoperti = function(){
       var coperti = $.cookie(riferimentoCoperti);
-      console.log("DEBUG (data.js): getInstanceCoperti - Raw coperti cookie value:", coperti); // DEBUG
-      if(typeof coperti !== 'undefined' && coperti !== null && coperti !== ""){  //esiste e non è vuoto
+      if(typeof coperti !== 'undefined' && coperti !== null && coperti !== ""){
          return parseInt(coperti);
       }else{
-         console.log("DEBUG (data.js): getInstanceCoperti - Coperti cookie not found or empty, saving 0."); // DEBUG
          this.saveInstanceCoperti(0);
          return 0;
       }
    }
 
    this.saveInstanceCoperti = function(coperti){
-      console.log("DEBUG (data.js): saveInstanceCoperti - Saving coperti to cookie:", coperti); // DEBUG
-      $.cookie(
-         riferimentoCoperti,
-         coperti,
-         { expires: 7, path: '/', json: true } // AGGIUNTO json: true
-      );
-      console.log("DEBUG (data.js): saveInstanceCoperti - Coperti cookie saved. Current cookie value (via $.cookie):", $.cookie(riferimentoCoperti)); // DEBUG
-      console.log("DEBUG (data.js): saveInstanceCoperti - Raw document.cookie after save:", document.cookie); // NUOVO DEBUG: Controlla il document.cookie raw
+      $.cookie(riferimentoCoperti, coperti, { expires: 7, path: '/', json: true });
    }
 
    this.deleteAllData = function(){
-      console.log("DEBUG (data.js): deleteAllData - Deleting all order data (hashmap and coperti cookies)."); // DEBUG
-      // Specificare il path per la rimozione, deve corrispondere al path con cui è stato salvato
       $.removeCookie(riferimentoHashMap, { path: '/' });
       $.removeCookie(riferimentoCoperti, { path: '/' });
-      console.log("DEBUG (data.js): deleteAllData - Cookies removed."); // DEBUG
    }
 }
-
-var dataManager = new Data();
 """
+            os.makedirs(os.path.dirname(OUTPUT_DATA_JS), exist_ok=True)
+            with open(OUTPUT_DATA_JS, 'w', encoding='utf-8') as f:
+                f.write(data_js_content)
 
-        # ====================================================================
-        # Scrittura del file data.js nel percorso specificato.
-        # ====================================================================
-        output_path = 'C:/sagra/web/preordini/preordini_lib/util/data.js' # AGGIORNA QUESTO PERCORSO SE DIVERSO
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+            messagebox.showinfo("Completato", f"data.js generato.\nPreferenze salvate in:\n{PREFS_PATH}")
+            root.destroy()
 
-        with open(output_path, 'w', encoding='utf-8') as f:
-            f.write(data_js_content)
-        print(f'File data.js generato e aggiornato con successo in: {output_path}')
+        ttk.Button(bottombar, text="CONTINUA", command=on_continua).pack(side="right")
+        ttk.Label(bottombar, text="Scroll: rotellina/trackpad, PgUp/PgDn, Home/End.").pack(side="left")
+
+        root.mainloop()
 
     except psycopg2.Error as e:
-        print(f'ERRORE CRITICO: Errore durante l\'aggiornamento del listino: {e}')
-        messagebox.showerror("Errore Database", f"Si è verificato un errore durante la connessione al database o l'esecuzione delle query:\n{e}")
+        print('ERRORE DB:', e)
+        try:
+            messagebox.showerror("Errore Database", f"Errore DB:\n{e}")
+        except Exception:
+            pass
     except Exception as e:
-        print(f'ERRORE CRITICO: Errore generico: {e}')
-        messagebox.showerror("Errore", f"Si è verificato un errore inaspettato:\n{e}")
+        print('ERRORE:', e)
+        try:
+            messagebox.showerror("Errore", f"Errore:\n{e}")
+        except Exception:
+            pass
     finally:
         if conn:
             conn.close()
