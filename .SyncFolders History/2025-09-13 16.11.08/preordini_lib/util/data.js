@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-09-13T16:10:49.215739)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-09-12T01:08:27.542938)
 var elencoPrincipale = [
   "PIATTO UNICO E PRIMI",
   "SECONDI PIATTI",
