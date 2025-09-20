@@ -1,0 +1,320 @@
+
+# AggiornaListino_ordinabile_persistente.py
+# - Categorie: ordine naturale (nessun ORDER BY)
+# - Pietanze: campo "Ord." per ordinamento manuale per categoria (riparte da 1)
+# - Persistenza: include/ordine ricordati tra le sessioni SENZA modificare il DB
+#
+# File di preferenze: ordine_pietanze.json nello stesso folder dello script
+
+import psycopg2
+import json
+import os
+from datetime import datetime
+import tkinter as tk
+from tkinter import messagebox, ttk
+
+# =========================================================
+# CONFIGURAZIONE DATABASE POSTGRESQL (adatta ai tuoi parametri)
+# =========================================================
+db_config = {
+    'user': 'sagra',
+    'host': 'localhost',
+    'database': 'sagra',
+    'password': 'plutarco',
+    'port': 5432,
+}
+
+# Percorso output data.js (come tuo progetto)
+OUTPUT_DATA_JS = r'C:/sagra/web/preordini/preordini_lib/util/data.js'
+
+# File di persistenza (accanto allo script)
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PREFS_PATH = os.path.join(SCRIPT_DIR, 'ordine_pietanze.json')
+
+def load_prefs():
+    try:
+        with open(PREFS_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"per_category": {}}  # { cat_id: { item_id: {"order": n, "include": bool} } }
+    except Exception as e:
+        print("ATTENZIONE: impossibile leggere le preferenze, verranno ignorate:", e)
+        return {"per_category": {}}
+
+def save_prefs(per_cat_widgets):
+    # Costruisce dizionario preferenze dalla GUI corrente
+    prefs = {"per_category": {}}
+    for cat_id, rows in per_cat_widgets.items():
+        prefs["per_category"][str(cat_id)] = {}
+        for r in rows:
+            p = r['pietanza']
+            include = bool(r['var_chk'].get())
+            try:
+                ord_val = int(r['var_ord'].get())
+            except Exception:
+                ord_val = None
+            prefs["per_category"][str(cat_id)][str(p['id'])] = {
+                "order": ord_val,
+                "include": include
+            }
+    try:
+        with open(PREFS_PATH, 'w', encoding='utf-8') as f:
+            json.dump(prefs, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print("ATTENZIONE: impossibile salvare le preferenze:", e)
+
+def get_pref_order(prefs, cat_id, item_id):
+    try:
+        val = prefs["per_category"].get(str(cat_id), {}).get(str(item_id), {})
+        return val.get("order", None)
+    except Exception:
+        return None
+
+def get_pref_include(prefs, cat_id, item_id):
+    try:
+        val = prefs["per_category"].get(str(cat_id), {}).get(str(item_id), {})
+        inc = val.get("include", None)
+        if inc is None:
+            return True  # default incluso
+        return bool(inc)
+    except Exception:
+        return True
+
+def aggiorna_listino():
+    conn = None
+    try:
+        # Carico preferenze (se presenti)
+        prefs = load_prefs()
+
+        conn = psycopg2.connect(**db_config)
+        cur = conn.cursor()
+        print('Connesso al database PostgreSQL.')
+
+        # 1) CATEGORIE in ordine naturale (niente ORDER BY)
+        cur.execute('SELECT id, descrizione FROM tipologie')
+        categorie_rows = cur.fetchall()
+        # lista di dict con id e descrizione
+        categorie = [{'id': row[0], 'descrizione': row[1]} for row in categorie_rows]
+
+        # 2) PIETANZE per categoria (ordine naturale dal DB)
+        all_pietanze = []
+        for cat in categorie:
+            cur.execute("""
+                SELECT 
+                    id, 
+                    descrizione, 
+                    TRIM(TRAILING '.' FROM REPLACE(TRIM(TRAILING '0' FROM prezzo::text), '.', ',')) as prezzo 
+                FROM articoli 
+                WHERE id_tipologia = %s
+            """, (cat['id'],))
+            for row in cur.fetchall():
+                all_pietanze.append({
+                    'id': row[0],
+                    'descrizione': row[1],
+                    'prezzo': row[2],
+                    'id_tipologia': cat['id'],
+                    'tipologia_desc': cat['descrizione']
+                })
+
+        # === GUI ===
+        root = tk.Tk()
+        root.title("Aggiorna Listino — Seleziona Pietanze e Ordine")
+
+        # layout scrollabile
+        container = ttk.Frame(root)
+        container.pack(fill="both", expand=True)
+        canvas = tk.Canvas(container, highlightthickness=0)
+        vsb = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
+        canvas.configure(yscrollcommand=vsb.set)
+        vsb.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
+        inner = ttk.Frame(canvas)
+        canvas.create_window((0, 0), window=inner, anchor="nw")
+
+        def on_configure(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+        inner.bind("<Configure>", on_configure)
+
+        # Dizionario: cat_id -> lista di righe GUI
+        per_cat_widgets = {cat['id']: [] for cat in categorie}
+
+        for cat in categorie:
+            lf = ttk.LabelFrame(inner, text=f"[{cat['id']}] {cat['descrizione']}")
+            lf.pack(fill="x", expand=True, padx=10, pady=8)
+
+            # pietanze della categoria
+            cat_items = [p for p in all_pietanze if p['id_tipologia'] == cat['id']]
+            if not cat_items:
+                ttk.Label(lf, text="(Nessuna pietanza)").pack(anchor="w", padx=8, pady=2)
+                continue
+
+            header = ttk.Frame(lf)
+            header.pack(fill="x", padx=8, pady=(4,2))
+            ttk.Label(header, text="Includi", width=8).grid(row=0, column=0, sticky="w")
+            ttk.Label(header, text="Ord.", width=6).grid(row=0, column=1, sticky="w")
+            ttk.Label(header, text="Descrizione (Prezzo)").grid(row=0, column=2, sticky="w")
+
+            # progressivo di default parte da 1, ma se ci sono preferenze, usa quelle
+            next_default = 1
+
+            for idx, p in enumerate(cat_items):
+                rowf = ttk.Frame(lf)
+                rowf.pack(fill="x", padx=8, pady=1)
+
+                # include di default: preferenza salvata oppure True
+                include_default = get_pref_include(prefs, cat['id'], p['id'])
+                var_chk = tk.BooleanVar(value=include_default)
+                chk = ttk.Checkbutton(rowf, variable=var_chk)
+                chk.grid(row=0, column=0, sticky="w", padx=(0,6))
+
+                # ordine: preferenza salvata oppure progressivo
+                saved_order = get_pref_order(prefs, cat['id'], p['id'])
+                if isinstance(saved_order, int) and saved_order > 0:
+                    ord_val = saved_order
+                else:
+                    ord_val = next_default
+                    next_default += 1
+
+                var_ord = tk.StringVar(value=str(ord_val))
+                ent = ttk.Entry(rowf, textvariable=var_ord, width=6, justify="right")
+                ent.grid(row=0, column=1, sticky="w", padx=(0,10))
+
+                ttk.Label(rowf, text=f"{p['descrizione']} ({p['prezzo']})").grid(row=0, column=2, sticky="w")
+
+                per_cat_widgets[cat['id']].append({
+                    'pietanza': p,
+                    'var_chk': var_chk,
+                    'var_ord': var_ord,
+                    'original_index': idx
+                })
+
+        def on_continua():
+            # Salva preferenze prima di chiudere (così le ritrovi alla prossima apertura)
+            save_prefs(per_cat_widgets)
+            root.destroy()
+
+        # Bottoni
+        btns = ttk.Frame(root)
+        btns.pack(fill="x", padx=10, pady=10)
+        ttk.Button(btns, text="CONTINUA", command=on_continua).pack(side="right")
+
+        root.mainloop()
+
+        # COSTRUISCI strutture per data.js secondo include + ordine
+        filtered_elenco_pietanze = {cat['descrizione']: [] for cat in categorie}
+
+        for cat in categorie:
+            rows = per_cat_widgets[cat['id']]
+            ordered = []
+            for r in rows:
+                p = r['pietanza']
+                include = bool(r['var_chk'].get())
+                if not include:
+                    continue
+                try:
+                    ord_val = int(r['var_ord'].get())
+                except Exception:
+                    ord_val = 10_000_000  # in coda se invalido
+                ordered.append((ord_val, r['original_index'], p))
+
+            ordered.sort(key=lambda t: (t[0], t[1]))
+            for _, __, p in ordered:
+                filtered_elenco_pietanze[next(c['descrizione'] for c in categorie if c['id']==p['id_tipologia'])].append({
+                    'id': p['id'],
+                    'descrizione': p['descrizione'],
+                    'prezzo': p['prezzo']
+                })
+
+        # elencoPrincipale mantiene l'ordine naturale delle categorie ma include solo quelle non vuote
+        elenco_principale = [cat['descrizione'] for cat in categorie if filtered_elenco_pietanze[cat['descrizione']]]
+
+        # Genera data.js
+        data_js_content = f"// data.js - Generato automaticamente (Data: {datetime.now().isoformat()})\n\n"
+        data_js_content += f"var elencoPrincipale = {json.dumps(elenco_principale, indent=2, ensure_ascii=False)};\n"
+        data_js_content += f"var categorie = {json.dumps(categorie, indent=2, ensure_ascii=False)};\n"
+        data_js_content += f"var elencoPietanze = {json.dumps(filtered_elenco_pietanze, indent=2, ensure_ascii=False)};\n\n"
+        data_js_content += r"""function Data(){
+   var riferimentoHashMap = "_hashmap";
+   var riferimentoCoperti = "_coperti";
+
+   this.getInstanceHashmap = function(){
+      function recreateHashmap(value){
+         var hashmap = new HashMap();
+         if (value && Array.isArray(value)) {
+             for(var i = 0; i < value.length; i++){
+                if (value[i] && typeof value[i].key !== 'undefined' && typeof value[i].val !== 'undefined') {
+                    hashmap.put(value[i].key, value[i].val);
+                }
+             }
+         }
+         return hashmap;
+      }
+      var hashmapCookieValue = $.cookie(riferimentoHashMap);
+      if(typeof hashmapCookieValue !== 'undefined' && hashmapCookieValue !== null && hashmapCookieValue !== ""){
+         try {
+             var parsedCookie = JSON.parse(hashmapCookieValue);
+             if (parsedCookie && parsedCookie.value && Array.isArray(parsedCookie.value)) {
+                 return recreateHashmap(parsedCookie.value);
+             } else {
+                 this.deleteAllData();
+                 var newHashmap = new HashMap();
+                 this.saveInstanceHashmap(newHashmap);
+                 return newHashmap;
+             }
+         } catch (e) {
+             this.deleteAllData();
+             var newHashmap = new HashMap();
+             this.saveInstanceHashmap(newHashmap);
+             return newHashmap;
+         }
+      } else {
+         var hashmap = new HashMap();
+         this.saveInstanceHashmap(hashmap);
+         return hashmap;
+      }
+   }
+
+   this.saveInstanceHashmap = function(hashmap){
+      $.cookie(riferimentoHashMap, JSON.stringify(hashmap), { expires: 7, path: '/', json: true });
+   }
+
+   this.getInstanceCoperti = function(){
+      var coperti = $.cookie(riferimentoCoperti);
+      if(typeof coperti !== 'undefined' && coperti !== null && coperti !== ""){
+         return parseInt(coperti);
+      }else{
+         this.saveInstanceCoperti(0);
+         return 0;
+      }
+   }
+
+   this.saveInstanceCoperti = function(coperti){
+      $.cookie(riferimentoCoperti, coperti, { expires: 7, path: '/', json: true });
+   }
+
+   this.deleteAllData = function(){
+      $.removeCookie(riferimentoHashMap, { path: '/' });
+      $.removeCookie(riferimentoCoperti, { path: '/' });
+   }
+}
+"""
+        os.makedirs(os.path.dirname(OUTPUT_DATA_JS), exist_ok=True)
+        with open(OUTPUT_DATA_JS, 'w', encoding='utf-8') as f:
+            f.write(data_js_content)
+
+        print('File data.js generato con successo in:', OUTPUT_DATA_JS)
+        print('Preferenze salvate in:', PREFS_PATH)
+
+    except psycopg2.Error as e:
+        print('ERRORE DB:', e)
+        messagebox.showerror("Errore Database", f"Errore DB:\n{e}")
+    except Exception as e:
+        print('ERRORE:', e)
+        messagebox.showerror("Errore", f"Errore:\n{e}")
+    finally:
+        if conn:
+            conn.close()
+            print('Connessione al database chiusa.')
+
+if __name__ == "__main__":
+    aggiorna_listino()
