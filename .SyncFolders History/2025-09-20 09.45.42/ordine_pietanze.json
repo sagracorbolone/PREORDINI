@@ -1,0 +1,130 @@
+{
+  "per_category": {
+    "1": {
+      "54": {
+        "order": 4,
+        "include": true
+      }
+    },
+    "3": {
+      "15": {
+        "order": 8,
+        "include": true
+      },
+      "19": {
+        "order": 13,
+        "include": true
+      },
+      "18": {
+        "order": 2,
+        "include": true
+      },
+      "52": {
+        "order": 1,
+        "include": true
+      }
+    },
+    "4": {
+      "25": {
+        "order": 3,
+        "include": true
+      },
+      "24": {
+        "order": 2,
+        "include": true
+      },
+      "23": {
+        "order": 1,
+        "include": true
+      },
+      "26": {
+        "order": 4,
+        "include": true
+      },
+      "27": {
+        "order": 5,
+        "include": true
+      }
+    },
+    "5": {
+      "29": {
+        "order": 2,
+        "include": true
+      },
+      "28": {
+        "order": 1,
+        "include": true
+      },
+      "37": {
+        "order": 5,
+        "include": true
+      },
+      "36": {
+        "order": 3,
+        "include": true
+      },
+      "40": {
+        "order": 14,
+        "include": true
+      },
+      "41": {
+        "order": 13,
+        "include": true
+      },
+      "39": {
+        "order": 15,
+        "include": true
+      },
+      "33": {
+        "order": 10,
+        "include": true
+      },
+      "35": {
+        "order": 12,
+        "include": true
+      },
+      "32": {
+        "order": 9,
+        "include": true
+      },
+      "34": {
+        "order": 11,
+        "include": true
+      },
+      "38": {
+        "order": 4,
+        "include": true
+      },
+      "31": {
+        "order": 8,
+        "include": true
+      },
+      "30": {
+        "order": 7,
+        "include": true
+      },
+      "47": {
+        "order": 6,
+        "include": true
+      }
+    },
+    "6": {
+      "43": {
+        "order": 3,
+        "include": false
+      },
+      "44": {
+        "order": 2,
+        "include": false
+      },
+      "45": {
+        "order": 1,
+        "include": false
+      },
+      "46": {
+        "order": 4,
+        "include": false
+      }
+    }
+  }
+}
