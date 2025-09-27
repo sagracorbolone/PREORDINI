@@ -1,0 +1,3 @@
+ATTENZIONE :
+
+ogni qualvolta si va a lanciare il programma "AggiornaListino" se si vuole che funzioni senza intoppi bisogna fare su "Gestione stand gastronomico" una chiusura giornata ed un riapertura altrimenti quando si tenta di acquisire il preordine esce la dicitura "nessun preordine acquisito"  
