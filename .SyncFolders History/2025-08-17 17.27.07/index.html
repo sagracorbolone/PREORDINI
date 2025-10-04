@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html><head>
+<meta content="width=device-width, initial-scale=1" name="viewport">
+<meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+<link href="preordini_lib/jquery/jquery.mobile-1.4.5.min.css" rel="stylesheet">
+<link href="preordini_lib/themes/color-theme.min.css" rel="stylesheet">
+<link href="preordini_lib/themes/jquery.mobile.icons.min.css" rel="stylesheet">
+<link href="preordini_lib/util/css.css" rel="stylesheet">
+<link href="assets/tutorial/tutorial.css" rel="stylesheet">
+<script src="preordini_lib/jquery/jquery-1.11.3.min.js"></script>
+<script src="preordini_lib/jquery/jquery.mobile-1.4.5.min.js"></script>
+<script src="preordini_lib/jquery/jquery.cookie.js"></script>
+
+<!-- Librerie QR Code corrette -->
+<script src="preordini_lib/qrcode/qrcode.js"></script>
+<script src="preordini_lib/qrcode/qrcodemanager.js"></script>
+<!-- Plugin jQuery per generare QR (path corretto) -->
+<script src="preordini_lib/jquery/jquery.qrcode.js"></script>
+<!-- oppure, se hai la versione minificata -->
+<!-- <script src="preordini_lib/jquery/jquery.qrcode.min.js"></script> -->
+
+<!-- Definizioni e logica -->
+<script src="preordini_lib/util/data.js"></script>           <!-- definisce initData() e class Data -->
+<script src="preordini_lib/util/hashmap.js"></script>
+<script src="preordini_lib/util/graphicManager.js"></script>
+<script src="preordini_lib/util/main.js"></script>           <!-- definisce startApp() -->
+
+<!-- Subito dopo: invochiamo initData() -->
+<script>
+  if (typeof initData === 'function') {
+    initData();
+  } else {
+    console.error('⚠️ initData() non trovata! Verifica che data.js sia caricato.');
+  }
+</script>
+</head>
+<body>
+<div data-role="page" data-theme="b" id="page-tutorial">
+  <div class="tutorial-overlay">
+    <div class="tutorial-card">
+      <div class="tutorial-header" id="tutorial-title">Guida (1/6)</div>
+      <div class="tutorial-text" id="tutorial-description"></div>
+      <div class="tutorial-figure">
+        <img id="tutorial-image" class="tutorial-image" alt="Tutorial" src="">
+      </div>
+      <div class="tutorial-nav">
+        <button class="tbtn tbtn-secondary" id="prev-tutorial-btn">INDIETRO</button>
+        <button class="tbtn tbtn-ghost" id="skip-tutorial-btn">SALTA</button>
+        <button class="tbtn tbtn-primary" id="next-tutorial-btn">AVANTI</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div data-role="page" data-theme="b" id="pageprinc">
+<div data-role="header">
+<div style="text-align: center;">
+<div id="datetime" style="font-size: 16px; margin-bottom: 5px;"></div>
+<h1>Menù</h1>
+</div>
+</div>
+<div class="ui-content" data-role="main">
+<div data-role="collapsible-set" id="lista"></div>
+<button class="ui-btn green-btn" id="resoconto-btn">Vedi
+resoconto</button> <button class="ui-btn red-btn" id="elimina-ordine-btn">Elimina ordine</button> </div>
+<div data-role="footer">
+<h4>SAGRA DI CORBOLONE</h4>
+</div>
+<div data-position-to="window" data-role="popup" data-transition="pop" id="popup-ordine">
+<div data-role="header">
+<h1 id="title-popup"></h1>
+</div>
+<div class="ui-content" data-role="main" id="content-ordine-popup">
+<div id="info-ordine-popup"></div>
+</div>
+</div>
+</div>
+<div data-role="page" data-theme="b" id="pageres">
+<div data-role="header">
+<h1>Riepilogo Ordine</h1>
+</div>
+<div class="ui-content" data-role="main">
+<div id="resoconto"></div>
+<button class="ui-btn red-btn" id="modifica-btn">Modifica
+Ordine</button> <button class="ui-btn green-btn" id="conferma-btn">Conferma Ordine</button> </div>
+<div data-role="footer">
+<h4>SAGRA DI CORBOLONE</h4>
+</div>
+</div>
+<div data-role="page" data-theme="b" id="pageqrcode">
+<div data-role="header">
+<div style="text-align: center;">
+<div id="datetime-qrcode" style="font-size: 14px; margin-bottom: 5px;"></div>
+<h1>Ordine</h1>
+</div>
+</div>
+<div class="ui-content" data-role="main" id="content-qrcode">
+<div id="riepilogo-info" style="margin-bottom: 10px; font-weight: bold; font-size: 16px;"></div>
+<h4>Presenta questo alla cassa e il tuo ordine sarà pronto</h4>
+<div id="qrcode"></div>
+<button class="ui-btn blue-btn" id="nuovo-ordine-btn">Nuovo
+Ordine</button> <button class="ui-btn red-btn" onclick="window.location.href='https://www.google.it';" style="margin-top: 10px;">Esci</button> </div>
+<div data-role="footer">
+<h4>SAGRA DI CORBOLONE</h4>
+</div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+const btnResoconto = document.getElementById("resoconto-btn");
+if (btnResoconto) {
+btnResoconto.addEventListener("click", function (e) {
+const inputs = document.getElementsByTagName("input");
+let numeroTavolo = null;
+let nomeCliente = null;
+let numeroCoperti = null;
+let errore = false;
+for (let input of inputs) {
+const ph = input.placeholder?.toLowerCase() || "";
+if (ph.includes("numero del tavolo")) numeroTavolo = input;
+if (ph.includes("il tuo nome")) nomeCliente = input;
+if (ph.includes("quanti siete")) numeroCoperti = input;
+}
+document.querySelectorAll('.errore-input').forEach(el => el.remove());
+if (!nomeCliente || nomeCliente.value.trim() === "") {
+e.preventDefault();
+e.stopImmediatePropagation();
+errore = true;
+const msg = document.createElement("div");
+msg.className = "errore-input";
+msg.style.color = "red";
+msg.style.fontSize = "16px";
+msg.style.fontWeight = "bold";
+msg.style.marginTop = "4px";
+msg.textContent = "⚠️ Il nome è obbligatorio.";
+nomeCliente?.parentNode?.insertBefore(msg, nomeCliente.nextSibling);
+}
+if (!numeroTavolo || numeroTavolo.value.trim() === "") {
+e.preventDefault();
+e.stopImmediatePropagation();
+errore = true;
+const msg = document.createElement("div");
+msg.className = "errore-input";
+msg.style.color = "red";
+msg.style.fontSize = "16px";
+msg.style.fontWeight = "bold";
+msg.style.marginTop = "4px";
+msg.textContent = "⚠️ Numero di tavolo obbligatorio.";
+numeroTavolo?.parentNode?.insertBefore(msg, numeroTavolo.nextSibling);
+}
+if (!numeroCoperti || numeroCoperti.value.trim() === "") {
+e.preventDefault();
+e.stopImmediatePropagation();
+errore = true;
+const msg = document.createElement("div");
+msg.className = "errore-input";
+msg.style.color = "red";
+msg.style.fontSize = "16px";
+msg.style.fontWeight = "bold";
+msg.style.marginTop = "4px";
+msg.textContent = "⚠️ Numero di coperti obbligatorio.";
+numeroCoperti?.parentNode?.insertBefore(msg, numeroCoperti.nextSibling);
+}
+if (!errore) {
+localStorage.setItem("nomeCliente", nomeCliente.value.trim());
+localStorage.setItem("numeroTavolo", numeroTavolo.value.trim());
+localStorage.setItem("numeroCoperti", numeroCoperti.value.trim());
+document.getElementById("resoconto").textContent =
+`Ordine per: ${nomeCliente.value.trim()} - Tavolo: ${numeroTavolo.value.trim()} - Coperti: ${numeroCoperti.value.trim()}`;
+$.mobile.changePage("#pageres");
+}
+}, true);
+}
+$(document).on("pagebeforeshow", "#pageqrcode", function () {
+const nome = localStorage.getItem("nomeCliente") || "(nome mancante)";
+const tavolo = localStorage.getItem("numeroTavolo") || "(n. mancante)";
+const coperti = localStorage.getItem("numeroCoperti") || "(n. mancante)";
+const testo = `Ordine per: ${nome} - Tavolo: ${tavolo} - Coperti: ${coperti}`;
+const divQR = document.getElementById("riepilogo-info");
+if (divQR) divQR.textContent = testo;
+});
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+const giorniSettimana = ["Domenica", "Lunedì", "Martedì", "Mercoledì", "Giovedì", "Venerdì", "Sabato"];
+const now = new Date();
+const giorno = giorniSettimana[now.getDay()];
+const giornoNumero = String(now.getDate()).padStart(2, '0');
+const mese = String(now.getMonth() + 1).padStart(2, '0');
+const anno = now.getFullYear();
+const ore = String(now.getHours()).padStart(2, '0');
+const minuti = String(now.getMinutes()).padStart(2, '0');
+const dataOra = `${giorno} ${giornoNumero}/${mese}/${anno} ${ore}:${minuti}`;
+const el1 = document.getElementById("datetime");
+const el2 = document.getElementById("datetime-qrcode");
+if (el1) el1.textContent = dataOra;
+if (el2) el2.textContent = dataOra;
+});
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+const btnModifica = document.getElementById("modifica-btn");
+if (btnModifica) {
+btnModifica.addEventListener("click", function () {
+// Naviga prima alla pagina principale
+$.mobile.changePage("#pageprinc");
+// Attendi mezzo secondo prima di riempire i campi
+setTimeout(() => {
+const nome = localStorage.getItem("nomeCliente") || "";
+const tavolo = localStorage.getItem("numeroTavolo") || "";
+const coperti = localStorage.getItem("numeroCoperti") || "";
+const page = document.querySelector("#pageprinc");
+if (page) {
+const inputs = page.querySelectorAll("input");
+for (let input of inputs) {
+const ph = input.placeholder?.toLowerCase() || "";
+if (ph.includes("il tuo nome")) input.value = nome;
+if (ph.includes("numero del tavolo")) input.value = tavolo;
+if (ph.includes("quanti siete")) input.value = coperti;
+}
+}
+}, 500);
+});
+}
+});
+</script>
+</body></html>
