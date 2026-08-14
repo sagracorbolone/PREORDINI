@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-08-14T16:16:36.639392)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-08-14T16:13:52.967807)
 var elencoPrincipale = [
   "PIATTO UNICO E PRIMI",
   "SECONDI PIATTI",
@@ -120,11 +120,6 @@ var elencoPietanze = {
       "id": 20,
       "descrizione": "FORMAGGIO COTTO",
       "prezzo": "7.5"
-    },
-    {
-      "id": 22,
-      "descrizione": "GALLETTO ALLA BRACE",
-      "prezzo": "10"
     },
     {
       "id": 52,
