@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-08-14T16:13:52.967807)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2025-10-05T00:16:25.720875)
 var elencoPrincipale = [
   "PIATTO UNICO E PRIMI",
   "SECONDI PIATTI",
@@ -69,47 +69,27 @@ var elencoPietanze = {
     {
       "id": 11,
       "descrizione": "PETTO DI POLLO",
-      "prezzo": "8.5"
+      "prezzo": "9"
     },
     {
       "id": 14,
-      "descrizione": "STINCO",
+      "descrizione": "STINCO INTERO",
       "prezzo": "12.5"
     },
     {
       "id": 13,
       "descrizione": "CAPRIOLO E FUNGHI",
-      "prezzo": "13"
+      "prezzo": "13.5"
     },
     {
       "id": 15,
-      "descrizione": "BACCALA'",
+      "descrizione": "BACCALA' ROSSO",
       "prezzo": "13"
     },
     {
       "id": 16,
       "descrizione": "CALAMARI",
       "prezzo": "11.5"
-    },
-    {
-      "id": 9,
-      "descrizione": "COSTATA",
-      "prezzo": "22"
-    },
-    {
-      "id": 10,
-      "descrizione": "COSTATA BEN COTTA",
-      "prezzo": "22"
-    },
-    {
-      "id": 18,
-      "descrizione": "FRITTO MISTO",
-      "prezzo": "13"
-    },
-    {
-      "id": 21,
-      "descrizione": "STRATAGLIATA",
-      "prezzo": "15"
     },
     {
       "id": 19,
@@ -120,17 +100,12 @@ var elencoPietanze = {
       "id": 20,
       "descrizione": "FORMAGGIO COTTO",
       "prezzo": "7.5"
-    },
-    {
-      "id": 52,
-      "descrizione": "GRIGLIATA PESCE",
-      "prezzo": "19"
     }
   ],
   "CONTORNI E VARIE": [
     {
       "id": 23,
-      "descrizione": "PATATINE",
+      "descrizione": "PATATINE FRITTE",
       "prezzo": "3"
     },
     {
@@ -150,7 +125,7 @@ var elencoPietanze = {
     },
     {
       "id": 27,
-      "descrizione": "SUPPL.POLENTA",
+      "descrizione": "SUPPL. POLENTA",
       "prezzo": "0.5"
     }
   ],
@@ -181,13 +156,18 @@ var elencoPietanze = {
       "prezzo": "2.5"
     },
     {
+      "id": 47,
+      "descrizione": "THE LATTINA 0,33L",
+      "prezzo": "2.5"
+    },
+    {
       "id": 30,
-      "descrizione": "BICCH. VINO ROSSO",
+      "descrizione": "OMBRA ROSSO",
       "prezzo": "1"
     },
     {
       "id": 31,
-      "descrizione": "BICCH. VINO BIANCO",
+      "descrizione": "OMBRA BIANCO",
       "prezzo": "1"
     },
     {
@@ -199,11 +179,6 @@ var elencoPietanze = {
       "id": 33,
       "descrizione": "CARAFFA BIANCO 0,5L",
       "prezzo": "3.5"
-    },
-    {
-      "id": 47,
-      "descrizione": "THE LATTINA 0,33L",
-      "prezzo": "2.5"
     },
     {
       "id": 34,
@@ -222,12 +197,12 @@ var elencoPietanze = {
     },
     {
       "id": 40,
-      "descrizione": "BOTT.BIANCO SELEZ.",
+      "descrizione": "BOTT.BIANCO 0,75L",
       "prezzo": "8"
     },
     {
       "id": 39,
-      "descrizione": "BOTT.ROSSO SELEZ",
+      "descrizione": "BOTT.ROSSO 0,75L",
       "prezzo": "8"
     }
   ],
