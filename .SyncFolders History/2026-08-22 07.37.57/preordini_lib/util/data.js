@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-08-22T07:37:43.984953)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-08-14T16:16:36.639392)
 var elencoPrincipale = [
   "PIATTO UNICO E PRIMI",
   "SECONDI PIATTI",
@@ -35,11 +35,6 @@ var elencoPietanze = {
       "prezzo": "9"
     },
     {
-      "id": 54,
-      "descrizione": "RISOTTO PESCE",
-      "prezzo": "10"
-    },
-    {
       "id": 3,
       "descrizione": "GNOCCHI RAGU'",
       "prezzo": "7"
@@ -51,11 +46,6 @@ var elencoPietanze = {
     }
   ],
   "SECONDI PIATTI": [
-    {
-      "id": 53,
-      "descrizione": "COSTATA 1/2 COTTURA",
-      "prezzo": "22"
-    },
     {
       "id": 12,
       "descrizione": "TRIPPE",
@@ -77,24 +67,34 @@ var elencoPietanze = {
       "prezzo": "9"
     },
     {
+      "id": 11,
+      "descrizione": "PETTO DI POLLO",
+      "prezzo": "8.5"
+    },
+    {
       "id": 14,
-      "descrizione": "STINCO INTERO",
+      "descrizione": "STINCO",
       "prezzo": "12.5"
     },
     {
       "id": 13,
       "descrizione": "CAPRIOLO E FUNGHI",
-      "prezzo": "13.5"
+      "prezzo": "13"
     },
     {
       "id": 15,
-      "descrizione": "BACCALA' ROSSO",
+      "descrizione": "BACCALA'",
       "prezzo": "13"
     },
     {
       "id": 16,
       "descrizione": "CALAMARI",
       "prezzo": "11.5"
+    },
+    {
+      "id": 9,
+      "descrizione": "COSTATA",
+      "prezzo": "22"
     },
     {
       "id": 10,
@@ -122,6 +122,11 @@ var elencoPietanze = {
       "prezzo": "7.5"
     },
     {
+      "id": 22,
+      "descrizione": "GALLETTO ALLA BRACE",
+      "prezzo": "10"
+    },
+    {
       "id": 52,
       "descrizione": "GRIGLIATA PESCE",
       "prezzo": "19"
@@ -130,7 +135,7 @@ var elencoPietanze = {
   "CONTORNI E VARIE": [
     {
       "id": 23,
-      "descrizione": "PATATINE FRITTE",
+      "descrizione": "PATATINE",
       "prezzo": "3"
     },
     {
@@ -150,7 +155,7 @@ var elencoPietanze = {
     },
     {
       "id": 27,
-      "descrizione": "SUPPL. POLENTA",
+      "descrizione": "SUPPL.POLENTA",
       "prezzo": "0.5"
     }
   ],
@@ -182,12 +187,12 @@ var elencoPietanze = {
     },
     {
       "id": 30,
-      "descrizione": "OMBRA ROSSO",
+      "descrizione": "BICCH. VINO ROSSO",
       "prezzo": "1"
     },
     {
       "id": 31,
-      "descrizione": "OMBRA BIANCO",
+      "descrizione": "BICCH. VINO BIANCO",
       "prezzo": "1"
     },
     {
@@ -222,12 +227,12 @@ var elencoPietanze = {
     },
     {
       "id": 40,
-      "descrizione": "BOTT.BIANCO 0,75L",
+      "descrizione": "BOTT.BIANCO SELEZ.",
       "prezzo": "8"
     },
     {
       "id": 39,
-      "descrizione": "BOTT.ROSSO 0,75L",
+      "descrizione": "BOTT.ROSSO SELEZ",
       "prezzo": "8"
     }
   ],
