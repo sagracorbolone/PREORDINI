@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-08-22T07:42:46.290083)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-08-22T07:37:43.984953)
 var elencoPrincipale = [
   "PIATTO UNICO E PRIMI",
   "SECONDI PIATTI",
@@ -35,6 +35,11 @@ var elencoPietanze = {
       "prezzo": "9"
     },
     {
+      "id": 54,
+      "descrizione": "RISOTTO PESCE",
+      "prezzo": "10"
+    },
+    {
       "id": 3,
       "descrizione": "GNOCCHI RAGU'",
       "prezzo": "7"
@@ -46,6 +51,11 @@ var elencoPietanze = {
     }
   ],
   "SECONDI PIATTI": [
+    {
+      "id": 53,
+      "descrizione": "COSTATA 1/2 COTTURA",
+      "prezzo": "22"
+    },
     {
       "id": 12,
       "descrizione": "TRIPPE",
@@ -72,6 +82,11 @@ var elencoPietanze = {
       "prezzo": "12.5"
     },
     {
+      "id": 13,
+      "descrizione": "CAPRIOLO E FUNGHI",
+      "prezzo": "13.5"
+    },
+    {
       "id": 15,
       "descrizione": "BACCALA' ROSSO",
       "prezzo": "13"
@@ -82,6 +97,21 @@ var elencoPietanze = {
       "prezzo": "11.5"
     },
     {
+      "id": 10,
+      "descrizione": "COSTATA BEN COTTA",
+      "prezzo": "22"
+    },
+    {
+      "id": 18,
+      "descrizione": "FRITTO MISTO",
+      "prezzo": "13"
+    },
+    {
+      "id": 21,
+      "descrizione": "STRATAGLIATA",
+      "prezzo": "15"
+    },
+    {
       "id": 19,
       "descrizione": "FORMAGGIO",
       "prezzo": "5.5"
@@ -90,6 +120,11 @@ var elencoPietanze = {
       "id": 20,
       "descrizione": "FORMAGGIO COTTO",
       "prezzo": "7.5"
+    },
+    {
+      "id": 52,
+      "descrizione": "GRIGLIATA PESCE",
+      "prezzo": "19"
     }
   ],
   "CONTORNI E VARIE": [

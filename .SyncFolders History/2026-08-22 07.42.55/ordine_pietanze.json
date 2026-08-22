@@ -15,7 +15,7 @@
       },
       "54": {
         "order": 1,
-        "include": false
+        "include": true
       }
     },
     "3": {
@@ -29,7 +29,7 @@
       },
       "13": {
         "order": 7,
-        "include": false
+        "include": true
       },
       "6": {
         "order": 2,
@@ -37,11 +37,11 @@
       },
       "53": {
         "order": 1,
-        "include": false
+        "include": true
       },
       "10": {
         "order": 11,
-        "include": false
+        "include": true
       },
       "19": {
         "order": 13,
@@ -53,11 +53,11 @@
       },
       "18": {
         "order": 12,
-        "include": false
+        "include": true
       },
       "52": {
         "order": 16,
-        "include": false
+        "include": true
       },
       "8": {
         "order": 4,
@@ -77,7 +77,7 @@
       },
       "21": {
         "order": 12,
-        "include": false
+        "include": true
       },
       "12": {
         "order": 1,
