@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-09-18T01:15:49.172308)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-09-18T01:08:14.580696)
 var elencoPrincipale = [
   "PIATTO UNICO E PRIMI",
   "SECONDI PIATTI",
@@ -174,6 +174,11 @@ var elencoPietanze = {
       "id": 33,
       "descrizione": "CARAFFA BIANCO 0,5L",
       "prezzo": "3.5"
+    },
+    {
+      "id": 47,
+      "descrizione": "THE LATTINA 0,33L",
+      "prezzo": "2.5"
     },
     {
       "id": 34,
