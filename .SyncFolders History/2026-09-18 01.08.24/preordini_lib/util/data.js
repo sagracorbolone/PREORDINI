@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-09-18T01:08:14.580696)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-08-22T07:42:46.290083)
 var elencoPrincipale = [
   "PIATTO UNICO E PRIMI",
   "SECONDI PIATTI",
@@ -31,7 +31,7 @@ var elencoPietanze = {
   "PIATTO UNICO E PRIMI": [
     {
       "id": 2,
-      "descrizione": "PAPPARDELLE CINGHIALE",
+      "descrizione": "REGINETTE CINGHIALE",
       "prezzo": "9"
     },
     {
@@ -64,22 +64,12 @@ var elencoPietanze = {
     {
       "id": 8,
       "descrizione": "MISTO",
-      "prezzo": "9.5"
-    },
-    {
-      "id": 11,
-      "descrizione": "PETTO DI POLLO",
       "prezzo": "9"
     },
     {
       "id": 14,
       "descrizione": "STINCO INTERO",
-      "prezzo": "13.5"
-    },
-    {
-      "id": 13,
-      "descrizione": "CAPRIOLO E FUNGHI",
-      "prezzo": "14"
+      "prezzo": "12.5"
     },
     {
       "id": 15,
@@ -89,24 +79,24 @@ var elencoPietanze = {
     {
       "id": 16,
       "descrizione": "CALAMARI",
-      "prezzo": "12"
+      "prezzo": "11.5"
     },
     {
       "id": 19,
-      "descrizione": "FORMAGGIO CON POLENTA",
+      "descrizione": "FORMAGGIO",
       "prezzo": "5.5"
     },
     {
       "id": 20,
       "descrizione": "FORMAGGIO COTTO",
-      "prezzo": "8"
+      "prezzo": "7.5"
     }
   ],
   "CONTORNI E VARIE": [
     {
       "id": 23,
       "descrizione": "PATATINE FRITTE",
-      "prezzo": "3.5"
+      "prezzo": "3"
     },
     {
       "id": 24,
@@ -189,11 +179,6 @@ var elencoPietanze = {
       "id": 35,
       "descrizione": "CARAFFA BIANCO 1L",
       "prezzo": "6"
-    },
-    {
-      "id": 55,
-      "descrizione": "BOTT.PROSECCO DOCG",
-      "prezzo": "12"
     },
     {
       "id": 41,
