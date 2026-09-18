@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-09-19T00:51:48.845301)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-09-18T01:15:49.172308)
 var elencoPrincipale = [
   "PIATTO UNICO E PRIMI",
   "SECONDI PIATTI",
@@ -30,21 +30,56 @@ var categorie = [
 var elencoPietanze = {
   "PIATTO UNICO E PRIMI": [
     {
-      "id": 54,
-      "descrizione": "LINGUINE PESCATORA",
-      "prezzo": "11"
+      "id": 2,
+      "descrizione": "PAPPARDELLE CINGHIALE",
+      "prezzo": "9"
+    },
+    {
+      "id": 3,
+      "descrizione": "GNOCCHI RAGU'",
+      "prezzo": "7"
+    },
+    {
+      "id": 4,
+      "descrizione": "GNOCCHI ANATRA",
+      "prezzo": "7"
     }
   ],
   "SECONDI PIATTI": [
     {
-      "id": 52,
-      "descrizione": "GRIGLIATA PESCE",
-      "prezzo": "20"
+      "id": 12,
+      "descrizione": "TRIPPE",
+      "prezzo": "8"
     },
     {
-      "id": 18,
-      "descrizione": "FRITTO MISTO",
-      "prezzo": "13"
+      "id": 6,
+      "descrizione": "COSTA",
+      "prezzo": "9"
+    },
+    {
+      "id": 7,
+      "descrizione": "SALSICCIA",
+      "prezzo": "9"
+    },
+    {
+      "id": 8,
+      "descrizione": "MISTO",
+      "prezzo": "9.5"
+    },
+    {
+      "id": 11,
+      "descrizione": "PETTO DI POLLO",
+      "prezzo": "9"
+    },
+    {
+      "id": 14,
+      "descrizione": "STINCO INTERO",
+      "prezzo": "13.5"
+    },
+    {
+      "id": 13,
+      "descrizione": "CAPRIOLO E FUNGHI",
+      "prezzo": "14"
     },
     {
       "id": 15,
@@ -52,9 +87,19 @@ var elencoPietanze = {
       "prezzo": "13"
     },
     {
+      "id": 16,
+      "descrizione": "CALAMARI",
+      "prezzo": "12"
+    },
+    {
       "id": 19,
       "descrizione": "FORMAGGIO CON POLENTA",
       "prezzo": "5.5"
+    },
+    {
+      "id": 20,
+      "descrizione": "FORMAGGIO COTTO",
+      "prezzo": "8"
     }
   ],
   "CONTORNI E VARIE": [
