@@ -37,11 +37,11 @@
       },
       "53": {
         "order": 8,
-        "include": false
+        "include": true
       },
       "10": {
         "order": 9,
-        "include": false
+        "include": true
       },
       "19": {
         "order": 13,

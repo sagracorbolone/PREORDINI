@@ -1,4 +1,4 @@
-// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-09-26T22:38:31.986532)
+// data.js - Generato automaticamente da AGGIORNA LISTINO (Data: 2026-09-26T00:24:53.031772)
 var elencoPrincipale = [
   "PIATTO UNICO E PRIMI",
   "SECONDI PIATTI",
@@ -80,6 +80,16 @@ var elencoPietanze = {
       "id": 13,
       "descrizione": "CAPRIOLO E FUNGHI",
       "prezzo": "14"
+    },
+    {
+      "id": 53,
+      "descrizione": "COSTATA 1/2 COTTURA",
+      "prezzo": "23"
+    },
+    {
+      "id": 10,
+      "descrizione": "COSTATA BEN COTTA",
+      "prezzo": "23"
     },
     {
       "id": 15,
